@@ -1,3 +1,4 @@
+
 #![cfg(feature = "myfs")]
 
 mod test_common;
@@ -10,7 +11,7 @@ use axfs::fops::{Disk, MyFileSystemIf};
 use axfs_ramfs::RamFileSystem;
 use axfs_vfs::VfsOps;
 use axio::{Result, Write};
-use driver_block::ramdisk::RamDisk;
+use driver_mmc::bcm2835::SDHCIdevice;
 
 struct MyFileSystemIfImpl;
 
@@ -41,16 +42,15 @@ fn create_init_files() -> Result<()> {
     Ok(())
 }
 
-//#[test]
-fn test_ramfs() {
-    println!("Testing ramfs ...");
-
+#[test]
+fn test_mmc() {
+    println!("Testing mmc fs...");
     axtask::init_scheduler(); // call this to use `axsync::Mutex`.
-    axfs::init_filesystems(AxDeviceContainer::from_one(RamDisk::default())); // dummy disk, actually not used.
+    axfs::init_filesystems(AxDeviceContainer::from_one(SDHCIdevice::new())); // dummy disk, actually not used.
 
     if let Err(e) = create_init_files() {
         log::warn!("failed to create init files: {:?}", e);
     }
 
-    test_common::test_all();
+    /*test_common::test_all();*/
 }

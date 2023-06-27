@@ -25,6 +25,7 @@ virtio-blk = ["block", "virtio", "driver_virtio/block"]
 virtio-net = ["net", "virtio", "driver_virtio/net"]
 virtio-gpu = ["display", "virtio", "driver_virtio/gpu"]
 ramdisk = ["block", "driver_block/ramdisk"]
+mmc-card = ["block", "driver_mmc/mmc-card"]
 # more devices example: e1000 = ["net", "driver_net/e1000"]
 
 default = ["bus-mmio"]
@@ -34,6 +35,7 @@ log = "0.4"
 cfg-if = "1.0"
 driver_common = { path = "../../crates/driver_common" }
 driver_block = { path = "../../crates/driver_block", optional = true }
+driver_mmc = { path = "../../crates/driver_mmc", optional = true }
 driver_net = { path = "../../crates/driver_net", optional = true }
 driver_display = { path = "../../crates/driver_display", optional = true }
 driver_pci = { path = "../../crates/driver_pci", optional = true }

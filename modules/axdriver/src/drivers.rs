@@ -65,4 +65,16 @@ cfg_if::cfg_if! {
             }
         }
     }
+    else if #[cfg(block_dev = "mmc-card")] {
+        pub struct SDHCIdriver;
+        register_block_driver!(SDHCIdriver, driver_mmc::bcm2835::SDHCIdevice);
+
+        impl DriverProbe for SDHCIdriver {
+            fn probe_global() -> Option<AxDeviceEnum> {
+                Some(AxDeviceEnum::from_block(
+                    driver_mmc::bcm2835::SDHCIdevice::new(),
+                ))
+            }
+        }
+    }
 }
