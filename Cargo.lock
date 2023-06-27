@@ -207,6 +207,7 @@ dependencies = [
  "driver_block",
  "driver_common",
  "driver_display",
+ "driver_mmc",
  "driver_net",
  "driver_pci",
  "driver_virtio",
@@ -236,6 +237,7 @@ dependencies = [
  "cfg-if",
  "crate_interface 0.1.1",
  "driver_block",
+ "driver_mmc",
  "fatfs",
  "lazy_init",
  "log",
@@ -647,6 +649,14 @@ version = "0.1.0"
 name = "driver_display"
 version = "0.1.0"
 dependencies = [
+ "driver_common",
+]
+
+[[package]]
+name = "driver_mmc"
+version = "0.1.0"
+dependencies = [
+ "driver_block",
  "driver_common",
 ]
 

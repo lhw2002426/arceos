@@ -9,7 +9,9 @@ use driver_block::BlockDriverOps;
 #[test]
 fn test_mmc() {
     print!("hello mmc!");
-    let sdhci_mmc = SDHCIdevice::new();
+    let mut sdhci_mmc = SDHCIdevice::new();
     let a = sdhci_mmc.num_blocks();
-    assert_eq!(a,0);
+    let empty_slice: &mut [u8] = &mut [];
+    sdhci_mmc.read_block(0, empty_slice);
+    assert_eq!(a,1);
 }
