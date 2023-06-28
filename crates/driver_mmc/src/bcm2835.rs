@@ -1,8 +1,15 @@
 //bcm2835.rs
+extern crate alloc;
+
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use driver_block::BlockDriverOps;
+use alloc::sync::Arc;
 use crate::constants::*;
 use crate::structs::*;
+use std::thread;
+use std::time::Duration;
+use axsync::Mutex;
+use spinlock::{BaseSpinLock,BaseSpinLockGuard,SpinRaw,SpinNoIrq};
 
 impl Bcm2835Host {
     fn wait_ongoing_tfr_cmd(&mut self){
@@ -11,28 +18,147 @@ impl Bcm2835Host {
     fn mmc_mrq_pr_debug (&mut self, mrq: &mut MmcRequest){
         //todo print mrq info
     }
-    fn bcm2835_mmc_request(&mut self, mrq: &mut MmcRequest) -> DevResult{
-        let host: &mut Bcm2835Host = mmc_priv(mmc);
+    fn bcm2835_mmc_readl (&mut self, reg:u32){
+        //todo print mrq info
+    }
+    fn bcm2835_mmc_writel (&mut self, value: i32,reg: u32,form: i32){
+        //todo print mrq info
+    }
+    fn bcm2835_mmc_writew (&mut self, value: i32,reg: u32){
+        //todo print mrq info
+    }
+    fn bcm2835_mmc_prepare_data (&mut self, mrq: &mut MmcRequest){
+        //todo print mrq info
+    }
+    fn bcm2835_mmc_set_transfer_mode (&mut self, mrq: &mut MmcRequest){
+        //todo print mrq info
+    }
+    fn bcm2835_mmc_send_command(&mut self,cmd:& MmcCommand) -> DevResult{
+        let mut spinlock = self.spinlock.lock();//todo how to save irq?
+        let mut flags: u32;
+        let mut mask: u32;
+        let mut timeout: u32;
 
-        let flags: unsigned long;
-        spin_lock_irqsave(&host.lock, &flags);
+        //WARN_ON(host->cmd);
 
-        WARN_ON(host.mrq.is_some());
+        // Wait max 10 ms
+        timeout = 1000;
 
-        host.mrq = Some(mrq);
-
-        if mrq.sbc.is_some() && !(host.flags & SDHCI_AUTO_CMD23) {
-            bcm2835_mmc_send_command(host, mrq.sbc.unwrap());
-        } else {
-            bcm2835_mmc_send_command(host, mrq.cmd);
+        mask = SDHCI_CMD_INHIBIT;
+        if cmd.data.is_some() || (cmd.flags & MMC_RSP_BUSY) != 0 {
+            mask |= SDHCI_DATA_INHIBIT;
         }
 
-        spin_unlock_irqrestore(&host.lock, flags);
+        // We shouldn't wait for data inhibit for stop commands, even
+        // though they might use busy signaling
+        if let Some(data) = self.mrq.data {
+            if cmd as *const _ == data.stop as *const _ {
+                mask &= !SDHCI_DATA_INHIBIT;
+            }
+        }
 
-        if !(mrq.sbc.is_some() && !(host.flags & SDHCI_AUTO_CMD23)) && mrq.cmd.data.is_some() && host.use_dma {
+        while self.bcm2835_mmc_readl(SDHCI_PRESENT_STATE) & mask != 0 {
+            if timeout == 0 {
+                /*pr_err!(
+                    "{}: Controller never released inhibit bit(s).\n",
+                    mmc_hostname(host.mmc)
+                );*///todo how to print error
+                bcm2835_mmc_dumpregs(host);
+                //cmd.error = -EIO;
+                //tasklet_schedule(&mut host.finish_tasklet);
+                return Err(DevError::Io);
+            }
+            timeout -= 1;
+            udelay(10);
+        }
+
+        if (1000 - timeout) / 100 > 1 && (1000 - timeout) / 100 > self.max_delay {
+            self.max_delay = (1000 - timeout) / 100;
+            //pr_warn!("Warning: MMC controller hung for {} ms\n", host.max_delay);
+        }
+
+        //timeout = jiffies;//todo
+        if cmd.data.is_none() && cmd.busy_timeout > 9000 {
+            timeout += (cmd.busy_timeout + 999) / 1000 * HZ + HZ;
+        } else {
+            timeout += 10 * HZ;
+        }
+        //mod_timer(&mut host.timer, timeout); //todo system timeout?
+
+        self.cmd = Some(cmd);
+        self.use_dma = false;
+
+        self.bcm2835_mmc_prepare_data(cmd);
+
+        self.bcm2835_mmc_writel(cmd.arg, SDHCI_ARGUMENT, 6);
+
+        self.bcm2835_mmc_set_transfer_mode(cmd);
+
+        if (cmd.flags & MMC_RSP_136) != 0 && (cmd.flags & MMC_RSP_BUSY) != 0 {
+            //pr_err!("{}: Unsupported response type!\n", mmc_hostname(host.mmc));
+            //cmd.error = -EINVAL;
+            //tasklet_schedule(&mut host.finish_tasklet);
+            return Err(DevError::Io);
+        }
+
+        if (cmd.flags & MMC_RSP_PRESENT) == 0 {
+            flags = SDHCI_CMD_RESP_NONE;
+        } else if (cmd.flags & MMC_RSP_136) != 0 {
+            flags = SDHCI_CMD_RESP_LONG;
+        } else if (cmd.flags & MMC_RSP_BUSY) != 0 {
+            flags = SDHCI_CMD_RESP_SHORT_BUSY;
+        } else {
+            flags = SDHCI_CMD_RESP_SHORT;
+        }
+
+        if (cmd.flags & MMC_RSP_CRC) != 0 {
+            flags |= SDHCI_CMD_CRC;
+        }
+        if (cmd.flags & MMC_RSP_OPCODE) != 0 {
+            flags |= SDHCI_CMD_INDEX;
+        }
+
+        if cmd.data.is_some() {
+            flags |= SDHCI_CMD_DATA;
+        }
+
+        self.bcm2835_mmc_writew(SDHCI_MAKE_CMD(cmd.opcode, flags) as i32, SDHCI_COMMAND);
+        Ok(())
+    }
+    fn bcm2835_mmc_request(&mut self, mrq: &mut MmcRequest) -> DevResult{
+        //let host: &mut Bcm2835Host = mmc_priv(mmc);
+        let mut res: DevResult  = Ok(());
+        {
+            //WARN_ON(host.mrq.is_some());
+            self.mrq = Some(SpinNoIrq::new(mrq.clone()).into());
+
+            /*if mrq.sbc.is_some() && !(host.flags & SDHCI_AUTO_CMD23) {
+                bcm2835_mmc_send_command(host, mrq.sbc.unwrap());
+            } else {
+                bcm2835_mmc_send_command(host, mrq.cmd);
+            }*/
+            if let Some(cmd) = mrq.cmd.as_mut(){
+                if let  cmd_ref = cmd.lock(){
+                    res = self.bcm2835_mmc_send_command(& cmd_ref);
+                }
+            }
+        }
+        /*if !(mrq.sbc.is_some() && !(host.flags & SDHCI_AUTO_CMD23)) && mrq.cmd.data.is_some() && host.use_dma {
             // DMA transfer starts now, PIO starts after interrupt
             bcm2835_mmc_transfer_dma(host);
+        }*/
+        match res{
+            Ok(data)=>{
+                return Ok(());
+            }
+            Err(err)=>{
+                //mrq->error = err;
+                return Err(DevError::Io);
+            }
         }
+    }
+    fn mmc_request_done(&mut self, mrq: &mut MmcRequest){
+        //todo
     }
     fn mmc_start_request(&mut self, mrq: &mut MmcRequest) -> DevResult{
         /*
@@ -47,20 +173,21 @@ impl Bcm2835Host {
         mrq.mmc_mrq_prep(self.max_blk_size,self.max_blk_count,self.max_req_size);
         //let err = mmc_retune(host); todo
 
-        if sdio_is_io_busy(mrq.cmd.opcode, mrq.cmd.arg) && host.ops.card_busy.is_some() {
+        /*if sdio_is_io_busy(mrq.cmd.opcode, mrq.cmd.arg) && self.card_busy {
             let mut tries = 500; // Wait approx 500ms at maximum
 
-            while host.ops.card_busy.unwrap()(host) && tries > 0 {
-                mmc_delay(1);
+            while self.card_busy.unwrap()(host) && tries > 0 {
+                let duration = Duration::from_micros(1000); 
+                thread::sleep(duration);
                 tries -= 1;
             }
 
             if tries == 0 {
-                mrq.cmd.error = -EBUSY;
-                mmc_request_done(host, mrq);
-                return;
+                //mrq.cmd.error = -EBUSY;
+                self.mmc_request_done(mrq);
+                return Err(DevError::ResourceBusy);
             }
-        }
+        }*/
 
         /*if mrq.cap_cmd_during_tfr {
             host.ongoing_mrq = Some(mrq);
@@ -73,7 +200,7 @@ impl Bcm2835Host {
             host.cqe_ops.as_ref().unwrap().cqe_off(host);
         }*/
 
-        let res = self.bcm2835_mmc_request(&mut mrq);
+        let res = self.bcm2835_mmc_request(mrq);
         match res{
             Ok(data)=>{
                 return Ok(());
@@ -88,7 +215,7 @@ impl Bcm2835Host {
     pub fn request_with_wait(&mut self, mrq: &mut MmcRequest) -> DevResult {
         self.wait_ongoing_tfr_cmd();//todo
         //mrq->done = mmc_wait_done;//todo
-        let res = self.mmc_start_request(&mut mrq);
+        let res = self.mmc_start_request(mrq);
         match res{
             Ok(data)=>{
                 return Ok(());

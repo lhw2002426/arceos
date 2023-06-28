@@ -12,3 +12,5 @@ default = []
 [dependencies]
 driver_common = { path = "../driver_common" }
 driver_block = { path = "../driver_block"}
+spinlock = { path = "../spinlock",option = "smp"}
+axsync = { path = "../../modules/axsync", default-features = false }

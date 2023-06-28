@@ -81,3 +81,70 @@ pub const MMC_DATA_PRIO: u32 = 1 << 11;
 pub const MMC_DATA_REL_WR: u32 = 1 << 12;
 pub const MMC_DATA_DAT_TAG: u32 = 1 << 13;
 pub const MMC_DATA_FORCED_PRG: u32 = 1 << 14;
+
+/*
+param.h
+ */
+pub const HZ :u32 = 1024;
+/* 
+sdhci.h
+*/
+pub const SDHCI_DMA_ADDRESS: u32 = 0x00;
+pub const SDHCI_ARGUMENT2: u32 = SDHCI_DMA_ADDRESS;
+pub const SDHCI_32BIT_BLK_CNT: u32 = SDHCI_DMA_ADDRESS;
+
+pub const SDHCI_BLOCK_SIZE: u32 = 0x04;
+pub fn SDHCI_MAKE_BLKSZ(dma: u32, blksz: u32) -> u32 {
+    (((dma & 0x7) << 12) | (blksz & 0xFFF))
+}
+
+pub const SDHCI_BLOCK_COUNT: u32 = 0x06;
+
+pub const SDHCI_ARGUMENT: u32 = 0x08;
+
+pub const SDHCI_TRANSFER_MODE: u32 = 0x0C;
+pub const SDHCI_TRNS_DMA: u32 = 0x01;
+pub const SDHCI_TRNS_BLK_CNT_EN: u32 = 0x02;
+pub const SDHCI_TRNS_AUTO_CMD12: u32 = 0x04;
+pub const SDHCI_TRNS_AUTO_CMD23: u32 = 0x08;
+pub const SDHCI_TRNS_AUTO_SEL: u32 = 0x0C;
+pub const SDHCI_TRNS_READ: u32 = 0x10;
+pub const SDHCI_TRNS_MULTI: u32 = 0x20;
+
+pub const SDHCI_COMMAND: u32 = 0x0E;
+pub const SDHCI_CMD_RESP_MASK: u32 = 0x03;
+pub const SDHCI_CMD_CRC: u32 = 0x08;
+pub const SDHCI_CMD_INDEX: u32 = 0x10;
+pub const SDHCI_CMD_DATA: u32 = 0x20;
+pub const SDHCI_CMD_ABORTCMD: u32 = 0xC0;
+
+pub const SDHCI_CMD_RESP_NONE: u32 = 0x00;
+pub const SDHCI_CMD_RESP_LONG: u32 = 0x01;
+pub const SDHCI_CMD_RESP_SHORT: u32 = 0x02;
+pub const SDHCI_CMD_RESP_SHORT_BUSY: u32 = 0x03;
+
+pub fn SDHCI_MAKE_CMD(c: u32, f: u32) -> u32 {
+    (((c & 0xff) << 8) | (f & 0xff))
+}
+pub fn SDHCI_GET_CMD(c: u32) -> u32 {
+    ((c >> 8) & 0x3f)
+}
+
+pub const SDHCI_RESPONSE: u32 = 0x10;
+
+pub const SDHCI_BUFFER: u32 = 0x20;
+
+pub const SDHCI_PRESENT_STATE: u32 = 0x24;
+pub const SDHCI_CMD_INHIBIT: u32 = 0x00000001;
+pub const SDHCI_DATA_INHIBIT: u32 = 0x00000002;
+pub const SDHCI_DOING_WRITE: u32 = 0x00000100;
+pub const SDHCI_DOING_READ: u32 = 0x00000200;
+pub const SDHCI_SPACE_AVAILABLE: u32 = 0x00000400;
+pub const SDHCI_DATA_AVAILABLE: u32 = 0x00000800;
+pub const SDHCI_CARD_PRESENT: u32 = 0x00010000;
+pub const SDHCI_CARD_PRES_SHIFT: u32 = 16;
+pub const SDHCI_CD_STABLE: u32 = 0x00020000;
+pub const SDHCI_CD_LVL: u32 = 0x00040000;
+pub const SDHCI_CD_LVL_SHIFT: u32 = 18;
+pub const SDHCI_DATA_0_LVL_MASK: u32 =	0x00100000;
+pub const SDHCI_CMD_LVL:	u32 =	0x01000000;

@@ -656,8 +656,10 @@ dependencies = [
 name = "driver_mmc"
 version = "0.1.0"
 dependencies = [
+ "axsync",
  "driver_block",
  "driver_common",
+ "spinlock",
 ]
 
 [[package]]
