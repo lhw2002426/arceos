@@ -16,6 +16,7 @@ pub struct Bcm2835Host{
     pub car_busy:bool,
     pub spinlock:SpinRaw<u32>,
     pub use_dma:bool,
+    pub cmd:Option<Arc<MmcCommand>>,
 }
 
 impl Bcm2835Host{
@@ -45,7 +46,7 @@ impl MmcCommand {
             ..MmcCommand::default()
         }
     }
-    fn clone(&self) -> MmcCommand {
+    pub fn clone(&self) -> MmcCommand {
         MmcCommand {
             opcode: self.opcode,
             arg: self.arg,
@@ -55,6 +56,7 @@ impl MmcCommand {
             error: self.error,
             //mrq: self.mrq,
             data: self.data.clone(),
+            busy_timeout:self.busy_timeout,
         }
     }
 }
@@ -127,7 +129,7 @@ impl MmcRequest {
                         MMC_READ_SINGLE_BLOCK
                     };
                 }
-                cmd_ref.arg = dev_addr;
+                cmd_ref.arg = dev_addr as i32;
                 /*if !mmc_card_blockaddr(test.card) { //todo
                     mrq.cmd.arg <<= 9;
                 }*/
@@ -201,7 +203,7 @@ impl MmcRequest {
             }*/
                 if let Some(stop) = self.stop.as_mut(){
                     if let mut stop_ref = stop.lock(){
-                    //data_ref.stop = Some();
+                    //data_ref.stop = Some(); todo
                     stop_ref.error = 0;
                     //stop_ref.mrq = Some(self);
                     }

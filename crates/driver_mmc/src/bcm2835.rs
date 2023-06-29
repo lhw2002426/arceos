@@ -11,30 +11,65 @@ use std::time::Duration;
 use axsync::Mutex;
 use spinlock::{BaseSpinLock,BaseSpinLockGuard,SpinRaw,SpinNoIrq};
 
+const int mmc_debug = 0;
+
 impl Bcm2835Host {
     fn wait_ongoing_tfr_cmd(&mut self){
-        
+        //todo check busy flag and wait
     }
-    fn mmc_mrq_pr_debug (&mut self, mrq: &mut MmcRequest){
+    fn mmc_mrq_pr_debug (&mut self, mrq: & MmcRequest){
         //todo print mrq info
+
     }
-    fn bcm2835_mmc_readl (&mut self, reg:u32){
-        //todo print mrq info
+    fn bcm2835_readl(addr:i32)->u32{
+        return 0;
+    }
+    fn bcm2835_mmc_readl (&mut self, reg:u32)->u32{
+        lockdep_assert_held_once(&host.lock);
+        return readl(self.ioaddr + reg);
     }
     fn bcm2835_mmc_writel (&mut self, value: i32,reg: u32,form: i32){
-        //todo print mrq info
+        let delay: u32;
+        lockdep_assert_held_once(&host.lock);
+        writel(val, host.ioaddr + reg);
+        //udelay(BCM2835_SDHCI_WRITE_DELAY(max(host.clock, MIN_FREQ)));
+        let duration = Duration::from_micros(BCM2835_SDHCI_WRITE_DELAY(max(host.clock, MIN_FREQ))); 
+        thread::sleep(duration);
+
+        delay = ((mmc_debug >> 16) & 0xf) << ((mmc_debug >> 20) & 0xf);
+        if delay != 0 && !((1 << from) & mmc_debug2 != 0) {
+            //udelay(delay);
+            let duration = Duration::from_micros(delay); 
+            thread::sleep(duration);
+        }
     }
     fn bcm2835_mmc_writew (&mut self, value: i32,reg: u32){
-        //todo print mrq info
+        let oldval = if reg == SDHCI_COMMAND {
+            host.shadow
+        } else {
+            bcm2835_mmc_readl(host, reg & !3)
+        };
+        let word_num = (reg >> 1) & 1;
+        let word_shift = word_num * 16;
+        let mask = 0xffff << word_shift;
+        let newval = (oldval & !mask) | (val as u32) << word_shift;
+    
+        if reg == SDHCI_TRANSFER_MODE {
+            host.shadow = newval;
+        } else {
+            bcm2835_mmc_writel(host, newval, reg & !3, 0);
+        }
     }
-    fn bcm2835_mmc_prepare_data (&mut self, mrq: &mut MmcRequest){
-        //todo print mrq info
+    fn bcm2835_mmc_prepare_data (&mut self, mrq: & MmcCommand){
+        //todo prepare data
     }
-    fn bcm2835_mmc_set_transfer_mode (&mut self, mrq: &mut MmcRequest){
-        //todo print mrq info
+    fn bcm2835_mmc_set_transfer_mode (&mut self, mrq: & MmcCommand){
+        //todo set trans mode
+    }
+    fn bcm2835_mmc_dumpregs(&self){
+        //todo print reg info
     }
     fn bcm2835_mmc_send_command(&mut self,cmd:& MmcCommand) -> DevResult{
-        let mut spinlock = self.spinlock.lock();//todo how to save irq?
         let mut flags: u32;
         let mut mask: u32;
         let mut timeout: u32;
@@ -51,25 +86,33 @@ impl Bcm2835Host {
 
         // We shouldn't wait for data inhibit for stop commands, even
         // though they might use busy signaling
-        if let Some(data) = self.mrq.data {
-            if cmd as *const _ == data.stop as *const _ {
-                mask &= !SDHCI_DATA_INHIBIT;
+        if let Some(mrq) = self.mrq.as_mut(){
+            if let  mut mrq_ref = mrq.lock(){
+                if let Some(data) = mrq_ref.data.as_mut(){
+                    if let mut data_ref = data.lock(){
+                        /*if cmd as *const _ == data.stop as *const _ { todo
+                            
+                        }*/
+                        mask &= !SDHCI_DATA_INHIBIT;
+                    }
+                }
             }
         }
-
         while self.bcm2835_mmc_readl(SDHCI_PRESENT_STATE) & mask != 0 {
             if timeout == 0 {
                 /*pr_err!(
                     "{}: Controller never released inhibit bit(s).\n",
                     mmc_hostname(host.mmc)
                 );*///todo how to print error
-                bcm2835_mmc_dumpregs(host);
+                self.bcm2835_mmc_dumpregs();
                 //cmd.error = -EIO;
                 //tasklet_schedule(&mut host.finish_tasklet);
                 return Err(DevError::Io);
             }
             timeout -= 1;
-            udelay(10);
+            let duration = Duration::from_micros(10); 
+            thread::sleep(duration);
+            //udelay(10);
         }
 
         if (1000 - timeout) / 100 > 1 && (1000 - timeout) / 100 > self.max_delay {
@@ -85,7 +128,7 @@ impl Bcm2835Host {
         }
         //mod_timer(&mut host.timer, timeout); //todo system timeout?
 
-        self.cmd = Some(cmd);
+        self.cmd = Some(Arc::clone(&Arc::new((*cmd).clone())));//use *cmd will get the value of cmd and crate a new ref
         self.use_dma = false;
 
         self.bcm2835_mmc_prepare_data(cmd);
@@ -127,6 +170,8 @@ impl Bcm2835Host {
     }
     fn bcm2835_mmc_request(&mut self, mrq: &mut MmcRequest) -> DevResult{
         //let host: &mut Bcm2835Host = mmc_priv(mmc);
+        //spin_lock_irqsave(&host->lock, flags);
+        //let mut spinlock = self.spinlock.lock();//todo how to save irq?
         let mut res: DevResult  = Ok(());
         {
             //WARN_ON(host.mrq.is_some());
