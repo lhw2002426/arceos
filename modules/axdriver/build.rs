@@ -1,5 +1,5 @@
 const NET_DEV_FEATURES: &[&str] = &["virtio-net"];
-const BLOCK_DEV_FEATURES: &[&str] = &["ramdisk", "virtio-blk"];
+const BLOCK_DEV_FEATURES: &[&str] = &["ramdisk", "virtio-blk","mmc"];
 const DISPLAY_DEV_FEATURES: &[&str] = &["virtio-gpu"];
 
 fn has_feature(feature: &str) -> bool {

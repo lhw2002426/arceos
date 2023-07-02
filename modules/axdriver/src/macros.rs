@@ -54,5 +54,10 @@ macro_rules! for_each_drivers {
             type $drv_type = crate::drivers::RamDiskDriver;
             $code
         }
+        #[cfg(block_dev = "mmc")]
+        {
+            type $drv_type = crate::drivers::MmcDriver;
+            $code
+        }
     }};
 }

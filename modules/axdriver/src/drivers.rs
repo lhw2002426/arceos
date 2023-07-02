@@ -65,4 +65,17 @@ cfg_if::cfg_if! {
             }
         }
     }
+    else if #[cfg(block_dev = "mmc")]{
+        pub struct MmcDriver;
+        register_block_driver!(MmckDriver, driver_mmc::bcm2835_sdhci::SDHCIDriver);
+
+        impl DriverProbe for MmcDriver {
+            fn probe_global() -> Option<AxDeviceEnum> {
+                // TODO: format RAM disk
+                Some(AxDeviceEnum::from_block(
+                    driver_mmc::bcm2835_sdhci::new(), // 16 MiB
+                ))
+            }
+        }
+    }
 }

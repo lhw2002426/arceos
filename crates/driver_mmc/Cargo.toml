@@ -1,0 +1,22 @@
+[package]
+name = "driver_mmc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+log = "0.4"
+env_logger = "0.9"
+driver_common = { path = "../driver_common" }
+driver_block = { path = "../driver_block"}
+spinlock = { path = "../spinlock",option = "smp"}
+axsync = { path = "../../modules/axsync", default-features = false }
+#aarch64 = { git = "https://github.com/lhw2002426/aarch64", version = "3.0.1" }
+#cortex-a = { git = "https://github.com/rust-embedded/cortex-a"}
+bcm2837 = { git = "https://github.com/lhw2002426/bcm2837", version = "2.5.1"}
+aarch64-cpu = "9.3"
+tock-registers = "0.8"
+#bcm2837 = { git = "https://github.com/rcore-os/bcm2837", version = "2.5.1"}
+lazy_static = { version = "1.4", features = ["spin_no_std"] }

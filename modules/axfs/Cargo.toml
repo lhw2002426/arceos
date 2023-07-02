@@ -14,7 +14,7 @@ devfs = ["dep:axfs_devfs"]
 ramfs = ["dep:axfs_ramfs"]
 fatfs = ["dep:fatfs"]
 myfs = ["dep:crate_interface"]
-use-ramdisk = []
+#use-ramdisk = []
 
 default = ["devfs", "ramfs", "fatfs"]
 
@@ -46,6 +46,6 @@ features = [ # no std
 ]
 
 [dev-dependencies]
-axdriver = { path = "../axdriver", features = ["block", "ramdisk"] }
+axdriver = { path = "../axdriver", features = ["block", "mmc"] }
 driver_block = { path = "../../crates/driver_block", features = ["ramdisk"] }
 axtask = { path = "../axtask", features = ["test"] }
