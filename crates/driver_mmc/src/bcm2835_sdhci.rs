@@ -2,8 +2,7 @@
 //! TODO: refactor, speed up
 
 extern crate alloc;
-
-//use crate::mailbox;
+use crate::mailbox;
 //use crate::drivers::block::BlockDriver;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use driver_block::BlockDriverOps;
@@ -311,7 +310,6 @@ impl SDScr {
         }
     }
 }
-
 pub struct EmmcCtl {
     emmc: Emmc,
     card_supports_sdhc: bool,
@@ -477,9 +475,27 @@ impl EmmcCtl {
         self.emmc.registers.CONTROL0.write(ctl0 & !(1 << 8));
     }
 
+    pub fn dumpregs(&mut self){
+        
+        debug!("Sys addr: | Version: 0x{:X}", self.emmc.registers.ARG2.read());
+        debug!("Blk size: | Blk cnt: 0x{:X}", self.emmc.registers.BLKSIZECNT.read());
+        debug!("Argument: | Trn mode: 0x{:X}", self.emmc.registers.ARG1.read());
+        debug!("Command: | transfer mod: 0x{:X}", self.emmc.registers.CMDTM.read());
+        debug!("RESP0: 0x{:X}", self.emmc.registers.RESP[0].read());
+        debug!("DATA: 0x{:X}", self.emmc.registers.DATA.read());
+        debug!("present state: 0x{:X}", self.emmc.registers.STATUS.read());
+        debug!("Wakeup Control | Block Gap Control | Power Control | Host Control1: 0x{:X}", self.emmc.registers.CONTROL0.read());
+        debug!("Software Reset | Timeout Control |                   Clock Control: 0x{:X}", self.emmc.registers.CONTROL1.read());
+        debug!("error interrupt: | normal interrupt: 0x{:X}", self.emmc.registers.INTERRUPT.read());
+        debug!("Host ctl2: 0x{:X}", self.emmc.registers.CONTROL2.read());
+
+        debug!("===========================================");
+
+    }
+
     pub fn sd_get_base_clock_hz(&mut self) -> u32 {
-        //let buf = mailbox::get_clock_rate(0x1);
-        let buf = Err(());
+        let buf = mailbox::get_clock_rate(0x1);
+        //let buf:Result<u32, DevError> = Ok(1800000000);
         if buf.is_ok() {
             let base_clock = buf.unwrap();
             info!("EmmcCtl: base clock rate is {}Hz.", base_clock);
@@ -881,23 +897,28 @@ impl EmmcCtl {
     pub fn sd_card_init(&mut self) -> bool {
         info!("sd_card_init");
         let ver = self.emmc.registers.SLOTISR_VER.read();
-        info!("sd_card_init: ver read");
+        info!("sd_card_init: ver read {}",ver);
         let vendor = ver >> 24;
         let sdversion = (ver >> 16) & 0xff;
         let slot_status = ver & 0xff;
         info!("EmmcCtl: vendor version number: {}", vendor);
         info!("EmmcCtl: host controller version number: {}", sdversion);
         info!("EmmcCtl: slot status: 0b{:b}", slot_status);
-
+        //self.emmc.registers.CONTROL1.write(0);//danger change, should not change this
         let mut control0 = self.emmc.registers.CONTROL0.read();
         let mut control1 = self.emmc.registers.CONTROL1.read();
+        debug!("contro1 before change: 0x{:X}",control1 );
         control1 |= 1 << 24;
         // Disable clock
         control1 &= !(1 << 2);
         control1 &= !(1 << 0);
+        debug!("contro1 after change: 0x{:X}",control1 );
         self.emmc.registers.CONTROL1.write(control1);
-
+        
+        debug!("before control wait 0x{:X} 0x{:X}",self.emmc.registers.CONTROL1.read(),(self.emmc.registers.CONTROL1.read() & (0x7 << 24)));
         if !timeout_wait!((self.emmc.registers.CONTROL1.read() & (0x7 << 24)) == 0) {
+            debug!("reset failed");
+            self.dumpregs();
             return false;
         }
 
@@ -1409,28 +1430,28 @@ fn demo(ctrl: &mut EmmcCtl) {
     // print out the first section of the sd_card.
     let section: [u8; 512] = [0; 512];
     let buf = unsafe { slice::from_raw_parts_mut(section.as_ptr() as *mut u32, 512 / 4) };
-    println!("Trying to fetch the first section of the SD card.");
+    info!("Trying to fetch the first section of the SD card.");
     if !ctrl.read_block(0, 1, buf).is_ok() {
         error!("Failed in fetching.");
         return;
     }
-    println!("Content:");
+    info!("Content:");
     for i in 0..32 {
         for j in 0..16 {
-            print!("{:02X} ", section[i * 16 + j]);
+            info!("{:02X} ", section[i * 16 + j]);
         }
-        println!("");
+        info!("");
     }
-    println!("");
+    info!("");
     if section[510] != 0x55 || section[511] != 0xAA {
-        println!("The first section is not an MBR section!");
-        println!("Maybe you are working on qemu using raw image.");
-        println!("Change the -sd argument to raspibian.img.");
+        info!("The first section is not an MBR section!");
+        info!("Maybe you are working on qemu using raw image.");
+        info!("Change the -sd argument to raspibian.img.");
         return;
     }
     let mut start_pos = 446; // start position of the partion table
     for entry in 0..4 {
-        print!("Partion entry #{}: ", entry);
+        info!("Partion entry #{}: ", entry);
         let partion_type = section[start_pos + 0x4];
         fn partion_type_map(partion_type: u8) -> &'static str {
             match partion_type {
@@ -1441,7 +1462,7 @@ fn demo(ctrl: &mut EmmcCtl) {
                 _ => "Not supported",
             }
         }
-        print!("{:^14}", partion_type_map(partion_type));
+        info!("{:^14}", partion_type_map(partion_type));
         if partion_type != 0x00 {
             let start_section: u32 = (section[start_pos + 0x8] as u32)
                 | (section[start_pos + 0x9] as u32) << 8
@@ -1451,12 +1472,12 @@ fn demo(ctrl: &mut EmmcCtl) {
                 | (section[start_pos + 0xd] as u32) << 8
                 | (section[start_pos + 0xe] as u32) << 16
                 | (section[start_pos + 0xf] as u32) << 24;
-            print!(
+            info!(
                 " start section no. = {}, a total of {} sections in use.",
                 start_section, total_section
             );
         }
-        println!("");
+        info!("");
         start_pos += 16;
     }
 }
@@ -1464,7 +1485,7 @@ fn demo(ctrl: &mut EmmcCtl) {
 fn demo_write(ctrl: &mut EmmcCtl) {
     let section: [u8; 512] = [0; 512];
     let mut deadbeef: [u8; 512] = [0; 512];
-    println!("Trying to fetch the second section of the SD card.");
+    info!("Trying to fetch the second section of the SD card.");
     if !ctrl
         .read_block(1, 1, unsafe {
             slice::from_raw_parts_mut(section.as_ptr() as *mut u32, 512 / 4)
@@ -1474,14 +1495,14 @@ fn demo_write(ctrl: &mut EmmcCtl) {
         error!("Failed in fetching.");
         return;
     }
-    println!("Content:");
+    info!("Content:");
     for i in 0..32 {
         for j in 0..16 {
-            print!("{:02X} ", section[i * 16 + j]);
+            info!("{:02X} ", section[i * 16 + j]);
         }
-        println!("");
+        info!("");
     }
-    println!("");
+    info!("");
 
     for i in 0..512 / 4 {
         deadbeef[i * 4 + 0] = 0xDE;
@@ -1508,14 +1529,14 @@ fn demo_write(ctrl: &mut EmmcCtl) {
         error!("Failed in checking.");
         return;
     }
-    println!("Re-fetched content:");
+    info!("Re-fetched content:");
     for i in 0..32 {
         for j in 0..16 {
-            print!("{:02X} ", deadbeef[i * 16 + j]);
+            info!("{:02X} ", deadbeef[i * 16 + j]);
         }
-        println!("");
+        info!("");
     }
-    println!("");
+    info!("");
     if !ctrl
         .write_block(1, 1, unsafe {
             slice::from_raw_parts(section.as_ptr() as *mut u32, 512 / 4)
@@ -1535,23 +1556,20 @@ fn demo_write(ctrl: &mut EmmcCtl) {
             return;
         }
     }
-    println!("Passed write() check.");
+    info!("Passed write() check.");
 }
 
-#[derive(Default)]
 pub struct SDHCIDriver(pub Mutex<EmmcCtl>);
 
 impl SDHCIDriver{
     pub fn new()-> SDHCIDriver{
         let mut ctrl = EmmcCtl::new();
         if ctrl.init() == 0 {
-            let driver = Arc::new(SDHCIDriver(Mutex::new(ctrl)));
             info!("BCM2835 sdhci: successfully initialized");
-            return driver;
         } else {
             warn!("BCM2835 sdhci: init failed");
-            SDHCIDriver::default()
         }
+        SDHCIDriver(Mutex::new(ctrl))
     }
 }
 

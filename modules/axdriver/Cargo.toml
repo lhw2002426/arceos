@@ -24,11 +24,11 @@ virtio = ["driver_virtio", "dep:axalloc", "dep:axhal", "dep:axconfig"]
 virtio-blk = ["block", "virtio", "driver_virtio/block"]
 virtio-net = ["net", "virtio", "driver_virtio/net"]
 virtio-gpu = ["display", "virtio", "driver_virtio/gpu"]
-#ramdisk = ["block", "driver_block/ramdisk"]
-mmc = ["block"]
+ramdisk = ["block", "driver_block/ramdisk"]
+mmc = ["block","driver_mmc"]
 # more devices example: e1000 = ["net", "driver_net/e1000"]
-
-default = ["bus-mmio"]
+block_dev = ["mmc"]
+default = ["bus-mmio","mmc"]
 
 [dependencies]
 log = "0.4"

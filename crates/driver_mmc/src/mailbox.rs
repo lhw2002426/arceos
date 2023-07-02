@@ -2,10 +2,13 @@
 //!
 //! (ref: https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface)
 extern crate alloc;
-use crate::memory::kernel_offset;
-use crate::sync::SpinNoIrqLock as Mutex;
-use aarch64::cache::*;
+//use crate::memory::kernel_offset;
+//use crate::sync::SpinNoIrqLock as Mutex;
+use spinlock::{BaseSpinLock,BaseSpinLockGuard,SpinRaw,SpinNoIrq as Mutex};
+use aarch64_cpu::{asm::barrier::*, registers::*};
+use crate::aarch64_cache::{Cache,Clean,DCache,Invalidate,PoC};
 use alloc::string::String;
+//use crate::aarch64_cache::*;
 use bcm2837::addr::phys_to_bus;
 use bcm2837::mailbox::{Mailbox, MailboxChannel};
 use core::mem;
@@ -19,11 +22,11 @@ lazy_static! {
 pub struct PropertyMailboxError(u32);
 pub type PropertyMailboxResult<T> = Result<T, PropertyMailboxError>;
 
-impl From<PropertyMailboxError> for String {
+/*impl From<PropertyMailboxError> for String {
     fn from(error: PropertyMailboxError) -> Self {
         format!("{:x?}", error)
     }
-}
+}*/
 
 /// Buffer request/response code.
 /// Copied from `linux/include/soc/bcm2835/raspberrypi-firmware.h`
@@ -171,7 +174,7 @@ struct PropertyMailboxRequest<T: Sized> {
 
 /// Request buffer address must be 16-byte aligned.
 #[repr(C, align(16))]
-#[derive(Debug)]
+//#[derive(Debug)]
 struct Align16<T: Sized>(PropertyMailboxRequest<T>);
 
 /// Some information of raspberry pi framebuffer
@@ -223,7 +226,8 @@ macro_rules! send_request {
             DCache::<Clean, PoC>::flush_range(start, end, SY);
             mbox.write(
                 MailboxChannel::Property,
-                phys_to_bus(kernel_offset(start) as u32),
+                //phys_to_bus(kernel_offset(start) as u32),
+                phys_to_bus(0 as u32),
             );
             mbox.read(MailboxChannel::Property);
             DCache::<Invalidate, PoC>::flush_range(start, end, SY);
@@ -314,7 +318,7 @@ pub fn framebuffer_set_virtual_offset(
 
 /// Allocate framebuffer on GPU and try to set width/height/depth.
 /// Returns `RaspiFramebufferInfo`.
-pub fn framebuffer_alloc(
+/*pub fn framebuffer_alloc(
     width: u32,
     height: u32,
     depth: u32,
@@ -390,7 +394,7 @@ pub fn framebuffer_alloc(
         bus_addr: ret.allocate.buf[0],
         screen_size: ret.allocate.buf[1],
     })
-}
+}*/
 
 pub fn get_clock_rate(clock_id: u32) -> PropertyMailboxResult<u32> {
     let ret = send_one_tag!(RPI_FIRMWARE_GET_CLOCK_RATE, [clock_id, 0])?;

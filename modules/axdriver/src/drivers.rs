@@ -71,9 +71,10 @@ cfg_if::cfg_if! {
 
         impl DriverProbe for MmcDriver {
             fn probe_global() -> Option<AxDeviceEnum> {
+                debug!("mmc probe");
                 // TODO: format RAM disk
                 Some(AxDeviceEnum::from_block(
-                    driver_mmc::bcm2835_sdhci::new(), // 16 MiB
+                    driver_mmc::bcm2835_sdhci::SDHCIDriver::new(), // 16 MiB
                 ))
             }
         }
