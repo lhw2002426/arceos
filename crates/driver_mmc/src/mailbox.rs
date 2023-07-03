@@ -10,7 +10,7 @@ use crate::aarch64_cache::{Cache,Clean,DCache,Invalidate,PoC};
 use alloc::string::String;
 //use crate::aarch64_cache::*;
 use bcm2837::addr::phys_to_bus;
-use bcm2837::mailbox::{Mailbox, MailboxChannel};
+use bcm2837::mailbox::{Mailbox, MailboxChannel,MAILBOX_BASE};
 use core::mem;
 use lazy_static::lazy_static;
 
@@ -211,32 +211,45 @@ pub struct RaspiFramebufferInfo {
 /// Returns `PropertyMailboxResult<typeof($tags)>`.
 macro_rules! send_request {
     ($tags: ident) => {{
+        debug!("mailbox send request mailbox base:{:X}",MAILBOX_BASE);
         let req = Align16(PropertyMailboxRequest {
             buf_size: mem::size_of_val(&$tags) as u32 + 12,
             req_resp_code: RPI_FIRMWARE_STATUS_REQUEST,
             buf: $tags,
             end_tag: RPI_FIRMWARE_PROPERTY_END,
         });
-
         let start = &req as *const _ as usize;
         let end = start + req.0.buf_size as usize;
+        debug!("before flush start:{:X}",start);
         {
             // flush data cache around mailbox accesses
             let mut mbox = MAILBOX.lock();
             DCache::<Clean, PoC>::flush_range(start, end, SY);
+            let write_addr = phys_to_bus((start - 0xFFFF_0000_0000_0000) as u32);
+            //let write_addr = ((start - 0xFFFF_0000_0000_0000)).try_into().unwrap();
+            debug!("before mbox write phys addr: {:X}",write_addr);
             mbox.write(
                 MailboxChannel::Property,
                 //phys_to_bus(kernel_offset(start) as u32),
-                phys_to_bus(0 as u32),
+                write_addr,
             );
+            debug!("after write mailbox");
             mbox.read(MailboxChannel::Property);
+            debug!("after read mailbox");
             DCache::<Invalidate, PoC>::flush_range(start, end, SY);
         }
-
+        debug!("after flush");
         match req.0.req_resp_code {
-            RPI_FIRMWARE_STATUS_SUCCESS => Ok(req.0.buf),
-            other => Err(PropertyMailboxError(other as u32)),
+            RPI_FIRMWARE_STATUS_SUCCESS => {
+                debug!("Request successful: {:?}", req.0.buf);
+                Ok(req.0.buf)
+            },
+            other => {
+                debug!("Request failed with code: {}", other as u32);
+                Err(PropertyMailboxError(other as u32))
+            },
         }
+        
     }};
 }
 
@@ -251,6 +264,7 @@ macro_rules! send_one_tag {
             req_resp_size: 0,
             buf,
         };
+        debug!("before send request");
         Ok(send_request!(tag)?.buf)
     }};
 }
@@ -397,6 +411,7 @@ pub fn framebuffer_set_virtual_offset(
 }*/
 
 pub fn get_clock_rate(clock_id: u32) -> PropertyMailboxResult<u32> {
+    debug!("get clock rate");
     let ret = send_one_tag!(RPI_FIRMWARE_GET_CLOCK_RATE, [clock_id, 0])?;
     if ret[0] == clock_id {
         return Ok(ret[1]);

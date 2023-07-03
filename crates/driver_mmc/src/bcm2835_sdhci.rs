@@ -494,7 +494,9 @@ impl EmmcCtl {
     }
 
     pub fn sd_get_base_clock_hz(&mut self) -> u32 {
+        debug!("sd get base clock hz");
         let buf = mailbox::get_clock_rate(0x1);
+        debug!("after mailbox");
         //let buf:Result<u32, DevError> = Ok(1800000000);
         if buf.is_ok() {
             let base_clock = buf.unwrap();
@@ -660,6 +662,7 @@ impl EmmcCtl {
     }
 
     pub fn sd_issue_command_int_pre(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
+        debug!("sd_issue_command_int_pre");
         self.last_cmd_reg = command;
         self.last_cmd_success = false;
 
@@ -676,6 +679,7 @@ impl EmmcCtl {
         }
 
         if self.blocks_to_transfer > 0xffff {
+            debug!("sd_issue_command_int_pre: block to transfer too big!");
             self.last_cmd_success = false;
             return false;
         }
@@ -685,13 +689,14 @@ impl EmmcCtl {
         self.emmc.registers.CMDTM.write(command);
         usleep(2000);
 
-        timeout_wait!(self.emmc.registers.INTERRUPT.read() & 0x8001 != 0, timeout);
-
+        let complete = timeout_wait!(self.emmc.registers.INTERRUPT.read() & 0x8001 != 0, timeout);
+        debug!("sd_issue_command_int_pre: complete : {}",complete);
         let irpts = self.emmc.registers.INTERRUPT.read();
         self.emmc.registers.INTERRUPT.write(0xffff_0001);
         if (irpts & 0xffff_0001) != 0x1 {
             self.last_error = irpts & 0xffff_0000;
             self.last_interrupt = irpts;
+            debug!("sd_issue_command_int_pre: interrupt error :{:X}",self.last_error);
             return false;
         }
         usleep(2000);
@@ -708,6 +713,7 @@ impl EmmcCtl {
     }
 
     pub fn sd_issue_command_int_post(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
+        debug!("sd_issue_command_int_post");
         if ((command & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B)
             || (command & SD_CMD_ISDATA) != 0
         {
@@ -768,6 +774,7 @@ impl EmmcCtl {
             self.last_cmd = command;
             self.sd_issue_command_int(sd_commands[command as usize], argument, timeout);
         }
+        debug!("sd_issue_command last_cmd_success:{}",self.last_cmd_success);
         self.last_cmd_success
     }
 
@@ -896,8 +903,9 @@ impl EmmcCtl {
 
     pub fn sd_card_init(&mut self) -> bool {
         info!("sd_card_init");
+        debug!("sd car addr: {:X}",EMMC_BASE);
         let ver = self.emmc.registers.SLOTISR_VER.read();
-        info!("sd_card_init: ver read {}",ver);
+        info!("sd_card_init: ver read {:X}",ver);
         let vendor = ver >> 24;
         let sdversion = (ver >> 16) & 0xff;
         let slot_status = ver & 0xff;
