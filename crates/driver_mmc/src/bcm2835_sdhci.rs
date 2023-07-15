@@ -921,6 +921,7 @@ impl EmmcCtl {
         control1 &= !(1 << 2);
         control1 &= !(1 << 0);
         debug!("contro1 after change: 0x{:X}",control1 );
+        //reset all
         self.emmc.registers.CONTROL1.write(control1);
         
         debug!("before control wait 0x{:X} 0x{:X}",self.emmc.registers.CONTROL1.read(),(self.emmc.registers.CONTROL1.read() & (0x7 << 24)));
@@ -982,6 +983,45 @@ impl EmmcCtl {
 
         self.block_size = BLOCK_SIZE;
         self.base_clock = base_clock;
+
+        self.dumpregs();
+
+        //power up and set bus width
+        {
+            
+            //bcm2835_mmc_writeb(host, SDHCI_POWER_330 | SDHCI_POWER_ON, SDHCI_POWER_CONTROL);//0x1|0xE,0x29
+            control0 = self.emmc.registers.CONTROL0.read();
+            control0 |= (0x1|0xE)<<8;
+            //let mut ctrl:u32 = bcm2835_mmc_readb(host, SDHCI_HOST_CONTROL);
+            /*ctrl &= ~SDHCI_CTRL_8BITBUS;//0x20
+            ctrl &= ~SDHCI_CTRL_4BITBUS;//0x02
+            ctrl &= ~SDHCI_CTRL_HISPD;//0x04*/
+            control0 &= !(0x20);//0x20
+            control0 &= !(0x02);//0x02
+            control0 &= !(0x04);//0x04*
+            //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);//0x28
+            self.emmc.registers.CONTROL0.write(control0);
+            //ctrl_2 = bcm2835_mmc_readw(host, SDHCI_HOST_CONTROL2);//0x3e
+            let mut control2 : u32 = self.emmc.registers.CONTROL2.read();//0x3e
+	        control2 &= (!(0x0030))<<16;//0x0030
+            //bcm2835_mmc_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
+            self.emmc.registers.CONTROL2.write(control2);
+            /* Reset SD Clock Enable */
+            //clk = bcm2835_mmc_readw(host, SDHCI_CLOCK_CONTROL);//0x2c
+            let mut clk: u32 = self.emmc.registers.CONTROL1.read();
+            clk &= !(0x0004);//0x0004
+            //bcm2835_mmc_writew(host, clk, SDHCI_CLOCK_CONTROL);
+            self.emmc.registers.CONTROL1.write(control1);
+
+            /* Re-enable SD Clock */
+            //bcm2835_mmc_set_clock(host, host->clock);
+            //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+            self.emmc.registers.CONTROL0.write(control0);
+        }
+        usleep(2000);
+        debug!("after set ios");
+        self.dumpregs();
+
 
         // Send CMD0 to the card (reset to idle state)
         info!("EmmcCtl: Send CMD0 to the card (reset to idle state).");
