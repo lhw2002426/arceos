@@ -481,7 +481,8 @@ impl EmmcCtl {
         debug!("Blk size: | Blk cnt: 0x{:X}", self.emmc.registers.BLKSIZECNT.read());
         debug!("Argument: | Trn mode: 0x{:X}", self.emmc.registers.ARG1.read());
         debug!("Command: | transfer mod: 0x{:X}", self.emmc.registers.CMDTM.read());
-        debug!("RESP0: 0x{:X}", self.emmc.registers.RESP[0].read());
+        debug!("RESP: 0x{:X},0x{:X},0x{:X},0x{:X}", self.emmc.registers.RESP[0].read(),
+        self.emmc.registers.RESP[1].read(),self.emmc.registers.RESP[2].read(),self.emmc.registers.RESP[3].read());
         debug!("DATA: 0x{:X}", self.emmc.registers.DATA.read());
         debug!("present state: 0x{:X}", self.emmc.registers.STATUS.read());
         debug!("Wakeup Control | Block Gap Control | Power Control | Host Control1: 0x{:X}", self.emmc.registers.CONTROL0.read());
