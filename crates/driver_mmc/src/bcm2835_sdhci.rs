@@ -85,7 +85,8 @@ const SD_RESP_R4: u32 = SD_CMD_RSPNS_TYPE_136;
 const SD_RESP_R5: u32 = SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN;
 const SD_RESP_R5b: u32 = SD_CMD_RSPNS_TYPE_48B | SD_CMD_CRCCHK_EN;
 const SD_RESP_R6: u32 = SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN;
-const SD_RESP_R7: u32 = SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN;
+const SD_RESP_R7: u32 = SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN | SD_CMD_IXCHK_EN;
+//const SD_RESP_R7: u32 = SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN;
 
 const SD_DATA_READ: u32 = SD_CMD_ISDATA | SD_CMD_DAT_DIR_CH;
 const SD_DATA_WRITE: u32 = SD_CMD_ISDATA | SD_CMD_DAT_DIR_HC;
@@ -477,9 +478,10 @@ impl EmmcCtl {
 
     pub fn dumpregs(&mut self){
         
+        debug!("===========================================");
         debug!("Sys addr: | Version: 0x{:X}", self.emmc.registers.ARG2.read());
         debug!("Blk size: | Blk cnt: 0x{:X}", self.emmc.registers.BLKSIZECNT.read());
-        debug!("Argument: | Trn mode: 0x{:X}", self.emmc.registers.ARG1.read());
+        debug!("Argument : 0x{:X}", self.emmc.registers.ARG1.read());
         debug!("Command: | transfer mod: 0x{:X}", self.emmc.registers.CMDTM.read());
         debug!("RESP: 0x{:X},0x{:X},0x{:X},0x{:X}", self.emmc.registers.RESP[0].read(),
         self.emmc.registers.RESP[1].read(),self.emmc.registers.RESP[2].read(),self.emmc.registers.RESP[3].read());
@@ -663,11 +665,18 @@ impl EmmcCtl {
     }
 
     pub fn sd_issue_command_int_pre(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
-        debug!("sd_issue_command_int_pre");
+        debug!("sd_issue_command_int_pre cmd:{:X} arg:{:X}",command,argument);
         self.last_cmd_reg = command;
         self.last_cmd_success = false;
 
+        let mut debug_status = 1;
         while (self.emmc.registers.STATUS.read() & 0x1) != 0 {
+            if debug_status == 1
+            {
+            
+                debug!("wait status:{:X}",self.emmc.registers.STATUS.read());
+                debug_status = 0;
+            }
             usleep(1000);
         }
 
@@ -688,6 +697,8 @@ impl EmmcCtl {
         self.emmc.registers.BLKSIZECNT.write(blksizecnt);
         self.emmc.registers.ARG1.write(argument);
         self.emmc.registers.CMDTM.write(command);
+        //debug!("dump reg in int_pre");
+        //self.dumpregs();
         usleep(2000);
 
         let complete = timeout_wait!(self.emmc.registers.INTERRUPT.read() & 0x8001 != 0, timeout);
@@ -697,7 +708,8 @@ impl EmmcCtl {
         if (irpts & 0xffff_0001) != 0x1 {
             self.last_error = irpts & 0xffff_0000;
             self.last_interrupt = irpts;
-            debug!("sd_issue_command_int_pre: interrupt error :{:X}",self.last_error);
+            debug!("sd_issue_command_int_pre: interrupt res :{:X}",irpts);
+            self.dumpregs();
             return false;
         }
         usleep(2000);
@@ -820,6 +832,7 @@ impl EmmcCtl {
                         break;
                     }
                     let mut cur_word_no = 0;
+                    debug!("may be there dead loop?");
                     while cur_word_no < blocks_size_u32 {
                         let word = self.emmc.registers.DATA.read();
                         info!(
@@ -999,7 +1012,8 @@ impl EmmcCtl {
             ctrl &= ~SDHCI_CTRL_HISPD;//0x04*/
             control0 &= !(0x20);//0x20
             control0 &= !(0x02);//0x02
-            control0 &= !(0x04);//0x04*
+            //control0 |= 0x02;//0x02
+            control0 &= !(0x04);//0x04
             //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);//0x28
             self.emmc.registers.CONTROL0.write(control0);
             //ctrl_2 = bcm2835_mmc_readw(host, SDHCI_HOST_CONTROL2);//0x3e
@@ -1030,17 +1044,23 @@ impl EmmcCtl {
             warn!("EmmcCtl: no CMD0 response.");
             return false;
         }
+        usleep(20000);
 
         // Send CMD8 to the card
         // Voltage supplied = 0x1 = 2.7-3.6V (standard)
         // Check pattern = 10101010b (as per PLSS 4.3.13) = 0xAA
+        //self.sd_issue_command(SEND_IF_COND, 0xaa, 500000);
+        //self.sd_issue_command(SEND_TUNING_BLOCK, 0, 500000);//danger change someone said send dummy bits to card will work
         self.sd_issue_command(SEND_IF_COND, 0x1aa, 500000);
+        debug!("cmd8 finish");
+        let v2_later = true;
         let v2_later = if self.timeout() {
             false
         } else if self.cmd_timeout() {
             if !self.sd_reset_cmd() {
                 return false;
             }
+            debug!("cmd timeout sd version below 2");
             self.emmc.registers.INTERRUPT.write(SD_ERR_MASK_CMD_TIMEOUT);
             false
         } else if self.failed() {
@@ -1052,11 +1072,11 @@ impl EmmcCtl {
         } else {
             if self.last_r[0] & 0xfff != 0x1aa {
                 warn!("EmmcCtl: unusable card.");
-                return false;
+                //return false;
             }
             true
         };
-
+        debug!("after deal cmd8 response v2_later:{}",v2_later);
         // Here we are supposed to check the response to CMD5 (HCSS 3.6)
         // It only returns if the card is a SDIO card
         self.sd_issue_command(IO_SET_OP_COND, 0, 10000);
@@ -1076,7 +1096,7 @@ impl EmmcCtl {
             warn!("EmmcCtl: inquiry ACMD41 failed.");
             return false;
         }
-
+        debug!("after acmd41");
         let mut card_is_busy = true;
 
         while card_is_busy {
@@ -1108,7 +1128,7 @@ impl EmmcCtl {
                 usleep(500000);
             }
         }
-
+        debug!("after acmd41 again");
         // At this point, we know the card is definitely an SD card, so will definitely
         //  support SDR12 mode which runs at 25 MHz
         self.sd_switch_clock_rate(base_clock, 25000000 /* SD_CLOCK_NORMAL */);
@@ -1117,7 +1137,7 @@ impl EmmcCtl {
         usleep(5000);
 
         // Switch to 1.8V mode if possible
-        info!("EmmcCtl: card_supports_18v = {}", self.card_supports_18v);
+        /*info!("EmmcCtl: card_supports_18v = {}", self.card_supports_18v);
         if self.card_supports_18v {
             // As per HCSS 3.6.1
             info!("EmmcCtl: Switch to 1.8v mode.");
@@ -1125,6 +1145,7 @@ impl EmmcCtl {
             if !self.sd_issue_command(VOLTAGE_SWITCH, 0, 500000) {
                 self.failed_voltage_switch = 1;
                 self.sd_power_off();
+                debug!("1.8v second init");
                 return self.sd_card_init();
             }
 
@@ -1138,6 +1159,7 @@ impl EmmcCtl {
             if ((status_reg >> 20) & 0xf) != 0 {
                 self.failed_voltage_switch = 1;
                 self.sd_power_off();
+                debug!("fail switch voltage DAT 1 second init");
                 return self.sd_card_init();
             }
 
@@ -1153,6 +1175,7 @@ impl EmmcCtl {
             if ((control0 >> 8) & 0x1) == 0 {
                 self.failed_voltage_switch = 1;
                 self.sd_power_off();
+                debug!("fail switch voltage 1.8 second init");
                 return self.sd_card_init();
             }
 
@@ -1169,11 +1192,13 @@ impl EmmcCtl {
             if ((status_reg >> 20) & 0xf) != 0xf {
                 self.failed_voltage_switch = 1;
                 self.sd_power_off();
+                debug!("fail switch voltage DAT 2 second init");
                 return self.sd_card_init();
             }
-        }
+        }*/
 
         if !self.sd_issue_command(ALL_SEND_CID, 0, 500000) {
+            debug!("fail all send cid");
             return false;
         }
 
@@ -1264,7 +1289,7 @@ impl EmmcCtl {
             self.block_size = 512;
             return false;
         }
-
+        debug!("after command scr");
         self.block_size = 512;
 
         // Determine card version
@@ -1339,7 +1364,7 @@ impl EmmcCtl {
 
         // Reset interrupt register
         self.emmc.registers.INTERRUPT.write(0xffffffff);
-
+        debug!("sd card init end");
         true
     }
 
@@ -1654,7 +1679,7 @@ impl BlockDriverOps for SDHCIDriver {
     }
     #[inline]
     fn num_blocks(&self) -> u64 {
-        0
+        1048576
     }
 
     #[inline]
