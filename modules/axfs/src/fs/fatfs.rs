@@ -49,7 +49,20 @@ impl FatFileSystem {
             root_dir: UnsafeCell::new(None),
         }
     }
-
+    /*#[cfg(not(feature = "use-ramdisk"))]
+    pub fn new(mut disk: Disk) -> Self {
+        debug!("use mmc");
+        let opts = fatfs::FormatVolumeOptions::new();
+        //fatfs::format_volume(&mut disk, opts).expect("failed to format volume");
+        let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
+            .expect("failed to initialize FAT filesystem");
+        debug!("after filesys init");
+        Self {
+            inner,
+            root_dir: UnsafeCell::new(None),
+        }
+    }*/
+    
     pub fn init(&'static self) {
         // must be called before later operations
         unsafe { *self.root_dir.get() = Some(Self::new_dir(self.inner.root_dir())) }

@@ -665,7 +665,7 @@ impl EmmcCtl {
     }
 
     pub fn sd_issue_command_int_pre(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
-        debug!("sd_issue_command_int_pre cmd:{:X} arg:{:X}",command,argument);
+        //debug!("sd_issue_command_int_pre cmd:{:X} arg:{:X}",command,argument);
         self.last_cmd_reg = command;
         self.last_cmd_success = false;
 
@@ -702,7 +702,7 @@ impl EmmcCtl {
         usleep(2000);
 
         let complete = timeout_wait!(self.emmc.registers.INTERRUPT.read() & 0x8001 != 0, timeout);
-        debug!("sd_issue_command_int_pre: complete : {}",complete);
+        //debug!("sd_issue_command_int_pre: complete : {}",complete);
         let irpts = self.emmc.registers.INTERRUPT.read();
         self.emmc.registers.INTERRUPT.write(0xffff_0001);
         if (irpts & 0xffff_0001) != 0x1 {
@@ -726,7 +726,7 @@ impl EmmcCtl {
     }
 
     pub fn sd_issue_command_int_post(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
-        debug!("sd_issue_command_int_post");
+        //debug!("sd_issue_command_int_post");
         if ((command & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B)
             || (command & SD_CMD_ISDATA) != 0
         {

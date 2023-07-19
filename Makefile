@@ -1,10 +1,10 @@
 # Arguments
-ARCH ?= x86_64
+ARCH ?= aarch64
 SMP ?= 1
 MODE ?= release
 LOG ?= warn
 
-A ?= apps/helloworld
+A ?= apps/fs/shell
 APP ?= $(A)
 APP_FEATURES ?=
 DISK_IMG ?= disk.img
