@@ -28,7 +28,7 @@ ramdisk = ["block", "driver_block/ramdisk"]
 mmc = ["block","driver_mmc"]
 # more devices example: e1000 = ["net", "driver_net/e1000"]
 block_dev = ["mmc"]
-default = ["bus-mmio","virtio-blk"]
+default = ["bus-mmio","mmc"]
 
 [dependencies]
 log = "0.4"

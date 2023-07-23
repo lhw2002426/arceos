@@ -39,7 +39,7 @@ impl FatFileSystem {
         }
     }
 
-    #[cfg(not(feature = "use-ramdisk"))]
+    /*#[cfg(not(feature = "use-ramdisk"))]
     pub fn new(disk: Disk) -> Self {
         debug!("not use ramdisk");
         let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
@@ -48,10 +48,16 @@ impl FatFileSystem {
             inner,
             root_dir: UnsafeCell::new(None),
         }
-    }
-    /*#[cfg(not(feature = "use-ramdisk"))]
+    }*/
+    #[cfg(not(feature = "use-ramdisk"))]
     pub fn new(mut disk: Disk) -> Self {
         debug!("use mmc");
+        //sleep for a while
+        let mut x = 0;
+        while x<1000000{
+            x+=1;
+        }
+        debug!("sleep use mut{}",x);
         let opts = fatfs::FormatVolumeOptions::new();
         //fatfs::format_volume(&mut disk, opts).expect("failed to format volume");
         let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
@@ -61,7 +67,7 @@ impl FatFileSystem {
             inner,
             root_dir: UnsafeCell::new(None),
         }
-    }*/
+    }
     
     pub fn init(&'static self) {
         // must be called before later operations

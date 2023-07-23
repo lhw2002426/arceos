@@ -666,6 +666,10 @@ impl EmmcCtl {
 
     pub fn sd_issue_command_int_pre(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
         //debug!("sd_issue_command_int_pre cmd:{:X} arg:{:X}",command,argument);
+        /*if command == sd_commands[READ_SINGLE_BLOCK as usize]{
+            debug!("read single");
+            self.dumpregs();
+        }*/
         self.last_cmd_reg = command;
         self.last_cmd_success = false;
 
@@ -1400,6 +1404,7 @@ impl EmmcCtl {
                             500000
                         );
                         let irpts = self.emmc.registers.INTERRUPT.read();
+                        //let now_data = self.emmc.registers.DATA.read();
                         self.emmc.registers.INTERRUPT.write(0xffff_0000 | wr_irpt);
                         if (irpts & (0xffff_0000 | wr_irpt)) != wr_irpt {
                             self.last_error = irpts & 0xffff_0000;
@@ -1409,8 +1414,10 @@ impl EmmcCtl {
                         }
                         let mut cur_word_no = 0;
                         while cur_word_no < blocks_size_u32 {
+                            let now_data = self.emmc.registers.DATA.read();
                             buf[(cur_block as usize) * blocks_size_u32 + cur_word_no] =
-                                self.emmc.registers.DATA.read();
+                                now_data;
+                            //debug!("tansfer data to buf {},DATA: {:X},buf: {:X}",(cur_block as usize) * blocks_size_u32 + cur_word_no,now_data,buf[(cur_block as usize) * blocks_size_u32 + cur_word_no]);
                             cur_word_no += 1;
                         }
                     }
@@ -1664,10 +1671,24 @@ impl BlockDriverOps for SDHCIDriver {
             return Err(DevError::Io);
         }
         let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        self.0.lock().read_block(block_id as u32, 1, buf)
+        let res = self.0.lock().read_block(block_id as u32, 1, buf);
+        if block_id == 0{
+            let len = buf.len();
+            for i in 0..len{
+                debug!("out read res {}: {:X}",i,buf[i]);
+            }
+            debug!("mmc read block {},{:X}",block_id,buf[0]);
+        }
+        res
     }
 
     fn write_block(&mut self, block_id: u64, buf: &[u8]) -> DevResult {
+        if block_id == 0{
+            for i in 0..8{
+                debug!("out write res {}: {:X}",i,buf[i]);
+            }
+            debug!("mmc write block {},{:X}",block_id,buf[0]);
+        }    
         if buf.len() < BLOCK_SIZE {
             return Err(DevError::Io);
         }
@@ -1679,7 +1700,7 @@ impl BlockDriverOps for SDHCIDriver {
     }
     #[inline]
     fn num_blocks(&self) -> u64 {
-        1048576
+        4194304
     }
 
     #[inline]
