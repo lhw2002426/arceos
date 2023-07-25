@@ -2,7 +2,8 @@
 //! TODO: refactor, speed up
 
 extern crate alloc;
-use crate::mailbox;
+//use crate::mailbox;
+//fail!
 //use crate::drivers::block::BlockDriver;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use driver_block::BlockDriverOps;
@@ -497,8 +498,10 @@ impl EmmcCtl {
     }
 
     pub fn sd_get_base_clock_hz(&mut self) -> u32 {
+
         debug!("sd get base clock hz");
-        let buf = mailbox::get_clock_rate(0x1);
+        return 0;
+        /*let buf = mailbox::get_clock_rate(0x1);
         debug!("after mailbox");
         //let buf:Result<u32, DevError> = Ok(1800000000);
         if buf.is_ok() {
@@ -508,7 +511,7 @@ impl EmmcCtl {
         } else {
             warn!("EmmcCtl: property mailbox did not return a valid clock id.");
             return 0;
-        }
+        }*/
     }
 
     pub fn sd_get_clock_divider(&mut self, base_clock: u32, target_rate: u32) -> u32 {

@@ -33,11 +33,6 @@ macro_rules! for_each_drivers {
         #[cfg(feature = "virtio")]
         #[allow(unused_imports)]
         use crate::virtio::{self, VirtIoDevMeta};
-        debug!("in for each");
-        #[cfg(block_dev = "mmc")]
-        {
-            debug!("test feature");
-        }
         #[cfg(net_dev = "virtio-net")]
         {
             type $drv_type = <virtio::VirtIoNet as VirtIoDevMeta>::Driver;
@@ -55,13 +50,13 @@ macro_rules! for_each_drivers {
         }
         #[cfg(block_dev = "ramdisk")]
         {
-            debug!("for each ramdisk probe");
+            //debug!("for each ramdisk probe");
             type $drv_type = crate::drivers::RamDiskDriver;
             $code
         }
         #[cfg(block_dev = "mmc")]
         {
-            debug!("for each mmc probe");
+            //debug!("for each mmc probe");
             type $drv_type = crate::drivers::MmcDriver;
         }
         #[cfg(net_dev = "ixgbe")]
