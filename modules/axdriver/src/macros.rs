@@ -59,16 +59,14 @@ macro_rules! for_each_drivers {
             type $drv_type = crate::drivers::RamDiskDriver;
             $code
         }
-<<<<<<< HEAD
         #[cfg(block_dev = "mmc")]
         {
             debug!("for each mmc probe");
             type $drv_type = crate::drivers::MmcDriver;
-=======
+        }
         #[cfg(net_dev = "ixgbe")]
         {
             type $drv_type = crate::drivers::IxgbeDriver;
->>>>>>> upstream/main
             $code
         }
     }};

@@ -12,7 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "aarch64-cpu"
 version = "9.3.1"
 source = "git+https://github.com/lhw2002426/aarch64-cpu#d7d8dbb2e3e3eff8e7c201d3b1aebb81c7e84017"
@@ -21,8 +20,6 @@ dependencies = [
 ]
 
 [[package]]
-=======
->>>>>>> upstream/main
 name = "aho-corasick"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -665,7 +662,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
 
 [[package]]
-<<<<<<< HEAD
 name = "cortex-a"
 version = "8.1.1"
 source = "git+https://github.com/rust-embedded/cortex-a#2ce4624ddc326b73ed02ab03e4bba83960b6107f"
@@ -681,12 +677,10 @@ dependencies = [
  "quote",
  "syn 2.0.27",
 ]
-=======
 name = "core_detect"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
->>>>>>> upstream/main
 
 [[package]]
 name = "crate_interface"
@@ -1012,8 +1006,6 @@ name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
-<<<<<<< HEAD
-=======
 
 [[package]]
 name = "ixgbe-driver"
@@ -1026,7 +1018,6 @@ dependencies = [
  "smoltcp",
  "volatile 0.3.0",
 ]
->>>>>>> upstream/main
 
 [[package]]
 name = "js-sys"
@@ -1193,10 +1184,7 @@ dependencies = [
 name = "page_table_entry"
 version = "0.1.0"
 dependencies = [
-<<<<<<< HEAD
-=======
  "aarch64-cpu",
->>>>>>> upstream/main
  "bitflags 2.3.3",
  "memory_addr",
  "x86_64",
@@ -1285,15 +1273,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-<<<<<<< HEAD
-version = "1.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe8a65d69dd0808184ebb5f836ab526bb259db23c657efa38711b1072ee47f0"
-=======
 version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50f3b39ccfb720540debaa0164757101c08ecb8d326b15358ce76a62c7e85965"
->>>>>>> upstream/main
 dependencies = [
  "proc-macro2",
 ]
@@ -1478,30 +1460,18 @@ checksum = "b0293b4b29daaf487284529cc2f5675b8e57c61f70167ba415a463651fd6a918"
 
 [[package]]
 name = "serde"
-<<<<<<< HEAD
-version = "1.0.174"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b88756493a5bd5e5395d53baa70b194b05764ab85b59e43e4b8f4e1192fa9b1"
-=======
 version = "1.0.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d25439cd7397d044e2748a6fe2432b5e85db703d6d097bd014b3c0ad1ebff0b"
->>>>>>> upstream/main
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-<<<<<<< HEAD
-version = "1.0.174"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e5c3a298c7f978e53536f95a63bdc4c4a64550582f31a0359a9afda6aede62e"
-=======
 version = "1.0.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b23f7ade6f110613c0d63858ddb8b94c1041f550eab58a16b371bdf2c9c80ab4"
->>>>>>> upstream/main
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1743,15 +1713,9 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "volatile"
-<<<<<<< HEAD
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"
-=======
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8e76fae08f03f96e166d2dfda232190638c10e0383841252416f9cfe2ae60e6"
->>>>>>> upstream/main
 
 [[package]]
 name = "volatile"

@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# Arguments
-ARCH ?= aarch64
-=======
 # Available arguments:
 # * General options:
 #     - `ARCH`: Target architecture: x86_64, riscv64, aarch64
@@ -31,18 +27,13 @@ ARCH ?= aarch64
 
 # General options
 ARCH ?= x86_64
->>>>>>> upstream/main
 SMP ?= 1
 MODE ?= release
 LOG ?= warn
 V ?=
 
-<<<<<<< HEAD
-A ?= apps/fs/shell
-=======
 # App options
 A ?= apps/helloworld
->>>>>>> upstream/main
 APP ?= $(A)
 APP_FEATURES ?=
 

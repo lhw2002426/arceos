@@ -40,12 +40,9 @@ sched_cfs = ["axtask/sched_cfs", "irq"]
 
 # File system
 fs = ["alloc", "axruntime/fs", "dep:axdriver", "dep:axfs"]
-<<<<<<< HEAD:ulib/libax/Cargo.toml
 #use-ramdisk = ["axdriver?/ramdisk", "axfs?/use-ramdisk"]
-=======
 myfs = ["axfs?/myfs"]
 use-ramdisk = ["axdriver?/ramdisk", "axfs?/use-ramdisk"]
->>>>>>> upstream/main:ulib/axstd/Cargo.toml
 
 # Networking
 net = ["alloc", "axruntime/net", "dep:axdriver", "dep:axnet"]

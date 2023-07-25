@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-const BLOCK_DEV_FEATURES: &[&str] = &["mmc","ramdisk", "virtio-blk"];
-=======
 const NET_DEV_FEATURES: &[&str] = &["ixgbe", "virtio-net"];
->>>>>>> upstream/main
+const BLOCK_DEV_FEATURES: &[&str] = &["mmc","ramdisk", "virtio-blk"];
 const DISPLAY_DEV_FEATURES: &[&str] = &["virtio-gpu"];
 
 fn has_feature(feature: &str) -> bool {
