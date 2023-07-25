@@ -1672,19 +1672,19 @@ impl BlockDriverOps for SDHCIDriver {
         }
         let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
         let res = self.0.lock().read_block(block_id as u32, 1, buf);
-        if block_id == 0{
+        /*if block_id == 0{
             let len = buf.len();
             for i in 0..len{
                 debug!("out read res {}: {:X}",i,buf[i]);
             }
             debug!("mmc read block {},{:X}",block_id,buf[0]);
-        }
+        }*/
         res
     }
 
     fn write_block(&mut self, block_id: u64, buf: &[u8]) -> DevResult {
         if block_id == 0{
-            for i in 0..8{
+            for i in 0..16{
                 debug!("out write res {}: {:X}",i,buf[i]);
             }
             debug!("mmc write block {},{:X}",block_id,buf[0]);
