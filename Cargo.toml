@@ -11,6 +11,7 @@ members = [
     "apps/net/httpclient",
     "apps/net/httpserver",
     "apps/net/udpserver",
+    "apps/net/bwbench",
     "apps/task/parallel",
     "apps/task/sleep",
     "apps/task/yield",
@@ -62,5 +63,12 @@ members = [
     "modules/axsync",
     "modules/axtask",
 
-    "ulib/libax",
+    "ulib/axstd",
+    "ulib/axlibc",
 ]
+
+[profile.release]
+lto = true
+
+[patch.crates-io]
+crate_interface = { path = "crates/crate_interface" }
