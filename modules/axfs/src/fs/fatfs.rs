@@ -28,7 +28,6 @@ unsafe impl<'a> Sync for DirWrapper<'a> {}
 impl FatFileSystem {
     #[cfg(feature = "use-ramdisk")]
     pub fn new(mut disk: Disk) -> Self {
-        debug!("use ramdisk");
         let opts = fatfs::FormatVolumeOptions::new();
         fatfs::format_volume(&mut disk, opts).expect("failed to format volume");
         let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
@@ -39,24 +38,11 @@ impl FatFileSystem {
         }
     }
 
-    /*#[cfg(not(feature = "use-ramdisk"))]
+    #[cfg(not(feature = "use-ramdisk"))]
     pub fn new(disk: Disk) -> Self {
         debug!("not use ramdisk");
         let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
             .expect("failed to initialize FAT filesystem");
-        Self {
-            inner,
-            root_dir: UnsafeCell::new(None),
-        }
-    }*/
-    #[cfg(not(feature = "use-ramdisk"))]
-    pub fn new(mut disk: Disk) -> Self {
-        debug!("use mmc");
-        let opts = fatfs::FormatVolumeOptions::new();
-        //fatfs::format_volume(&mut disk, opts).expect("failed to format volume");
-        let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
-            .expect("failed to initialize FAT filesystem");
-        debug!("after filesys init");
         Self {
             inner,
             root_dir: UnsafeCell::new(None),
