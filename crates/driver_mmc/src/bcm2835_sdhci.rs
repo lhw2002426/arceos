@@ -17,6 +17,7 @@ use core::mem;
 use core::slice;
 use core::time::Duration;
 
+///block size
 pub const BLOCK_SIZE: usize = 512;
 
 const SD_CMD_TYPE_NORMAL: u32 = 0x0;
@@ -312,6 +313,7 @@ impl SDScr {
         }
     }
 }
+///sd card control
 pub struct EmmcCtl {
     emmc: Emmc,
     card_supports_sdhc: bool,
@@ -402,6 +404,7 @@ macro_rules! timeout_wait {
 }
 
 impl EmmcCtl {
+    ///new Emmcctl
     pub fn new() -> EmmcCtl {
         info!("before new");
         //TODO: improve it!
@@ -472,11 +475,12 @@ impl EmmcCtl {
     fn tuning_error(&self) -> bool {
         return self.failed() && (self.last_error & (1 << SD_ERR_BASE + SD_ERR_TUNING)) != 0;
     }
+    ///sd_power_off
     pub fn sd_power_off(&mut self) {
         let ctl0 = self.emmc.registers.CONTROL0.read();
         self.emmc.registers.CONTROL0.write(ctl0 & !(1 << 8));
     }
-
+    ///print value of reg to debug
     pub fn dumpregs(&mut self){
         
         debug!("===========================================");
@@ -496,9 +500,10 @@ impl EmmcCtl {
         debug!("===========================================");
 
     }
-
+    
+    ///get_base_clock_hz
     pub fn sd_get_base_clock_hz(&mut self) -> u32 {
-
+        //todo: support mailbox
         debug!("sd get base clock hz");
         return 0;
         /*let buf = mailbox::get_clock_rate(0x1);
@@ -514,6 +519,7 @@ impl EmmcCtl {
         }*/
     }
 
+    ///sd_get_clock_divider
     pub fn sd_get_clock_divider(&mut self, base_clock: u32, target_rate: u32) -> u32 {
         let targetted_divisor: u32 = if target_rate > base_clock {
             1
@@ -550,6 +556,7 @@ impl EmmcCtl {
         ((divisor & 0xff) << 8) | (((divisor >> 8) & 0x3) << 6) | (0 << 5)
     }
 
+    ///sd_switch_clock_rate
     pub fn sd_switch_clock_rate(&mut self, base_clock: u32, target_rate: u32) -> bool {
         let divider = self.sd_get_clock_divider(base_clock, target_rate);
 
@@ -582,6 +589,7 @@ impl EmmcCtl {
         true
     }
 
+    ///sd_reset_cmd
     pub fn sd_reset_cmd(&mut self) -> bool {
         let mut control1 = self.emmc.registers.CONTROL1.read();
         self.emmc.registers.CONTROL1.write(control1 | SD_RESET_CMD);
@@ -594,6 +602,7 @@ impl EmmcCtl {
         true
     }
 
+    ///sd_reset_dat
     pub fn sd_reset_dat(&mut self) -> bool {
         let mut control1 = self.emmc.registers.CONTROL1.read();
         self.emmc.registers.CONTROL1.write(control1 | SD_RESET_DAT);
@@ -606,6 +615,7 @@ impl EmmcCtl {
         true
     }
 
+    ///sd_handle_card_interrupt
     pub fn sd_handle_card_interrupt(&mut self) {
         if self.card_rca != 0 {
             self.sd_issue_command_int(
@@ -616,6 +626,7 @@ impl EmmcCtl {
         }
     }
 
+    ///sd_handle_interrupts
     pub fn sd_handle_interrupts(&mut self) {
         let irpts = self.emmc.registers.INTERRUPT.read();
         let mut reset_mask = 0;
@@ -667,6 +678,7 @@ impl EmmcCtl {
         self.emmc.registers.INTERRUPT.write(reset_mask);
     }
 
+    ///sd_issue_command_int_pre
     pub fn sd_issue_command_int_pre(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
         //debug!("sd_issue_command_int_pre cmd:{:X} arg:{:X}",command,argument);
         /*if command == sd_commands[READ_SINGLE_BLOCK as usize]{
@@ -732,6 +744,7 @@ impl EmmcCtl {
         true
     }
 
+    ///sd_issue_command_int_post
     pub fn sd_issue_command_int_post(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
         //debug!("sd_issue_command_int_post");
         if ((command & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B)
@@ -761,12 +774,14 @@ impl EmmcCtl {
         true
     }
 
+    ///sd_issue_command_int
     pub fn sd_issue_command_int(&mut self, command: u32, argument: u32, timeout: u32) {
         if self.sd_issue_command_int_pre(command, argument, timeout) {
             self.sd_issue_command_int_post(command, argument, timeout);
         }
     }
 
+    ///sd_issue_command
     pub fn sd_issue_command(&mut self, command: u32, argument: u32, timeout: u32) -> bool {
         self.sd_handle_interrupts();
         if command & IS_APP_CMD != 0 {
@@ -798,6 +813,7 @@ impl EmmcCtl {
         self.last_cmd_success
     }
 
+    ///sd_issue_command_scr
     pub fn sd_issue_command_scr(&mut self, timeout: u32) -> bool {
         self.sd_handle_interrupts();
         let command = SEND_SCR;
@@ -865,6 +881,7 @@ impl EmmcCtl {
         self.last_cmd_success
     }
 
+    ///sd_check_success
     pub fn sd_check_success(&mut self) -> bool {
         if self.last_cmd_success {
             return true;
@@ -874,6 +891,7 @@ impl EmmcCtl {
         }
     }
 
+    ///sd_ensure_data_mode
     pub fn sd_ensure_data_mode(&mut self) -> i32 {
         if self.card_rca == 0 {
             let ret = self.init();
@@ -922,6 +940,7 @@ impl EmmcCtl {
         0
     }
 
+    ///sd_card_init
     pub fn sd_card_init(&mut self) -> bool {
         info!("sd_card_init");
         debug!("sd car addr: {:X}",EMMC_BASE);
@@ -1375,6 +1394,7 @@ impl EmmcCtl {
         true
     }
 
+    ///read_block
     pub fn read_block(
         &mut self,
         block_no_arg: u32,
@@ -1441,6 +1461,7 @@ impl EmmcCtl {
         Err(DevError::Io)
     }
 
+    ///write_block
     pub fn write_block(&mut self, block_no_arg: u32, count: usize, buf: &[u32]) -> DevResult {
         let mut block_no = block_no_arg;
         if !self.card_supports_sdhc {
@@ -1500,7 +1521,7 @@ impl EmmcCtl {
         self.card_rca = 0;
         Err(DevError::Io)
     }
-
+    ///Emmcctl init
     pub fn init(&mut self) -> i32 {
         if self.sd_card_init() {
             0
@@ -1643,9 +1664,11 @@ fn demo_write(ctrl: &mut EmmcCtl) {
     info!("Passed write() check.");
 }
 
+///sd driver
 pub struct SDHCIDriver(pub Mutex<EmmcCtl>);
 
 impl SDHCIDriver{
+    ///sd driver new
     pub fn new()-> SDHCIDriver{
         let mut ctrl = EmmcCtl::new();
         if ctrl.init() == 0 {
@@ -1712,6 +1735,7 @@ impl BlockDriverOps for SDHCIDriver {
     }
 }
 
+///sd init
 pub fn init() {
     info!("Initializing EmmcCtl...");
     let mut ctrl = EmmcCtl::new();
@@ -1727,9 +1751,4 @@ pub fn init() {
     } else {
         warn!("BCM2835 sdhci: init failed");
     }
-}
-
-
-pub fn test_lib()->u32{
-    114514
 }

@@ -47,7 +47,7 @@ features = [ # no std
 ]
 
 [dev-dependencies]
-axdriver = { path = "../axdriver", features = ["block", "ramdisk"] }
+axdriver = { path = "../axdriver", features = ["block", "mmc"] }
 driver_block = { path = "../../crates/driver_block", features = ["ramdisk"] }
 axsync = { path = "../axsync", features = ["multitask"] }
 axtask = { path = "../axtask", features = ["test"] }

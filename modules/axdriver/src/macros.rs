@@ -48,16 +48,18 @@ macro_rules! for_each_drivers {
             type $drv_type = <virtio::VirtIoGpu as VirtIoDevMeta>::Driver;
             $code
         }
-        #[cfg(block_dev = "ramdisk")]
-        {
-            //debug!("for each ramdisk probe");
-            type $drv_type = crate::drivers::RamDiskDriver;
-            $code
-        }
-        #[cfg(block_dev = "mmc")]
-        {
-            //debug!("for each mmc probe");
-            type $drv_type = crate::drivers::MmcDriver;
+        cfg_if::cfg_if! {
+            if #[cfg(block_dev = "ramdisk")] {
+                debug!("for each ramdisk probe");
+                type $drv_type = crate::drivers::RamDiskDriver;
+                $code
+            }
+            else if #[cfg(block_dev = "mmc")]
+            {
+                debug!("for each mmc probe");
+                type $drv_type = crate::drivers::MmcDriver;
+                $code
+            }
         }
         #[cfg(net_dev = "ixgbe")]
         {
