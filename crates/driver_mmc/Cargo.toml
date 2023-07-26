@@ -2,7 +2,11 @@
 name = "driver_mmc"
 version = "0.1.0"
 edition = "2021"
-
+authors = ["HaoWen Liu <1466397747@qq.com>"]
+description = "sd card driver for raspi4"
+license = "GPL-3.0-or-later OR Apache-2.0"
+homepage = "https://github.com/rcore-os/arceos"
+repository = "https://github.com/rcore-os/arceos/tree/main/crates/driver_mmc"
 
 [dependencies]
 log = "0.4"

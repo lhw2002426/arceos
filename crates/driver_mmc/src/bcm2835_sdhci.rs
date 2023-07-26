@@ -5,18 +5,17 @@ extern crate alloc;
 //use crate::mailbox;
 //fail!
 //use crate::drivers::block::BlockDriver;
-use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use driver_block::BlockDriverOps;
+use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 //use crate::drivers::{DeviceType, Driver, BLK_DRIVERS, DRIVERS, IRQ_MANAGER};
 //use crate::sync::SpinNoIrqLock as Mutex
-use spinlock::{BaseSpinLock,BaseSpinLockGuard,SpinRaw,SpinNoIrq as Mutex};
 use alloc::string::String;
 use alloc::sync::Arc;
 use bcm2837::emmc::*;
 use core::mem;
 use core::slice;
 use core::time::Duration;
-
+use spinlock::{BaseSpinLock, BaseSpinLockGuard, SpinNoIrq as Mutex, SpinRaw};
 ///block size
 pub const BLOCK_SIZE: usize = 512;
 
@@ -373,7 +372,6 @@ fn byte_swap(b: u32) -> u32 {
  * Other Constants
  */
 
-
 const MAX_WAIT_US: u32 = 1000000;
 const MAX_WAIT_TIMES: u32 = MAX_WAIT_US / 1000;
 
@@ -481,26 +479,46 @@ impl EmmcCtl {
         self.emmc.registers.CONTROL0.write(ctl0 & !(1 << 8));
     }
     ///print value of reg to debug
-    pub fn dumpregs(&mut self){
-        
+    pub fn dumpregs(&mut self) {
         debug!("===========================================");
-        debug!("Sys addr: | Version: 0x{:X}", self.emmc.registers.ARG2.read());
-        debug!("Blk size: | Blk cnt: 0x{:X}", self.emmc.registers.BLKSIZECNT.read());
+        debug!(
+            "Sys addr: | Version: 0x{:X}",
+            self.emmc.registers.ARG2.read()
+        );
+        debug!(
+            "Blk size: | Blk cnt: 0x{:X}",
+            self.emmc.registers.BLKSIZECNT.read()
+        );
         debug!("Argument : 0x{:X}", self.emmc.registers.ARG1.read());
-        debug!("Command: | transfer mod: 0x{:X}", self.emmc.registers.CMDTM.read());
-        debug!("RESP: 0x{:X},0x{:X},0x{:X},0x{:X}", self.emmc.registers.RESP[0].read(),
-        self.emmc.registers.RESP[1].read(),self.emmc.registers.RESP[2].read(),self.emmc.registers.RESP[3].read());
+        debug!(
+            "Command: | transfer mod: 0x{:X}",
+            self.emmc.registers.CMDTM.read()
+        );
+        debug!(
+            "RESP: 0x{:X},0x{:X},0x{:X},0x{:X}",
+            self.emmc.registers.RESP[0].read(),
+            self.emmc.registers.RESP[1].read(),
+            self.emmc.registers.RESP[2].read(),
+            self.emmc.registers.RESP[3].read()
+        );
         debug!("DATA: 0x{:X}", self.emmc.registers.DATA.read());
         debug!("present state: 0x{:X}", self.emmc.registers.STATUS.read());
-        debug!("Wakeup Control | Block Gap Control | Power Control | Host Control1: 0x{:X}", self.emmc.registers.CONTROL0.read());
-        debug!("Software Reset | Timeout Control |                   Clock Control: 0x{:X}", self.emmc.registers.CONTROL1.read());
-        debug!("error interrupt: | normal interrupt: 0x{:X}", self.emmc.registers.INTERRUPT.read());
+        debug!(
+            "Wakeup Control | Block Gap Control | Power Control | Host Control1: 0x{:X}",
+            self.emmc.registers.CONTROL0.read()
+        );
+        debug!(
+            "Software Reset | Timeout Control |                   Clock Control: 0x{:X}",
+            self.emmc.registers.CONTROL1.read()
+        );
+        debug!(
+            "error interrupt: | normal interrupt: 0x{:X}",
+            self.emmc.registers.INTERRUPT.read()
+        );
         debug!("Host ctl2: 0x{:X}", self.emmc.registers.CONTROL2.read());
 
         debug!("===========================================");
-
     }
-    
     ///get_base_clock_hz
     pub fn sd_get_base_clock_hz(&mut self) -> u32 {
         //todo: support mailbox
@@ -688,14 +706,7 @@ impl EmmcCtl {
         self.last_cmd_reg = command;
         self.last_cmd_success = false;
 
-        let mut debug_status = 1;
         while (self.emmc.registers.STATUS.read() & 0x1) != 0 {
-            if debug_status == 1
-            {
-            
-                debug!("wait status:{:X}",self.emmc.registers.STATUS.read());
-                debug_status = 0;
-            }
             usleep(1000);
         }
 
@@ -727,7 +738,7 @@ impl EmmcCtl {
         if (irpts & 0xffff_0001) != 0x1 {
             self.last_error = irpts & 0xffff_0000;
             self.last_interrupt = irpts;
-            debug!("sd_issue_command_int_pre: interrupt res :{:X}",irpts);
+            debug!("sd_issue_command_int_pre: interrupt res :{:X}", irpts);
             self.dumpregs();
             return false;
         }
@@ -809,7 +820,10 @@ impl EmmcCtl {
             self.last_cmd = command;
             self.sd_issue_command_int(sd_commands[command as usize], argument, timeout);
         }
-        debug!("sd_issue_command last_cmd_success:{}",self.last_cmd_success);
+        debug!(
+            "sd_issue_command last_cmd_success:{}",
+            self.last_cmd_success
+        );
         self.last_cmd_success
     }
 
@@ -943,28 +957,27 @@ impl EmmcCtl {
     ///sd_card_init
     pub fn sd_card_init(&mut self) -> bool {
         info!("sd_card_init");
-        debug!("sd car addr: {:X}",EMMC_BASE);
+        debug!("sd car addr: {:X}", EMMC_BASE);
         let ver = self.emmc.registers.SLOTISR_VER.read();
-        info!("sd_card_init: ver read {:X}",ver);
+        //info!("sd_card_init: ver read {:X}", ver);
         let vendor = ver >> 24;
         let sdversion = (ver >> 16) & 0xff;
         let slot_status = ver & 0xff;
-        info!("EmmcCtl: vendor version number: {}", vendor);
-        info!("EmmcCtl: host controller version number: {}", sdversion);
-        info!("EmmcCtl: slot status: 0b{:b}", slot_status);
+        //info!("EmmcCtl: vendor version number: {}", vendor);
+        //info!("EmmcCtl: host controller version number: {}", sdversion);
+        //info!("EmmcCtl: slot status: 0b{:b}", slot_status);
         //self.emmc.registers.CONTROL1.write(0);//danger change, should not change this
         let mut control0 = self.emmc.registers.CONTROL0.read();
         let mut control1 = self.emmc.registers.CONTROL1.read();
-        debug!("contro1 before change: 0x{:X}",control1 );
+        //debug!("contro1 before change: 0x{:X}", control1);
         control1 |= 1 << 24;
         // Disable clock
         control1 &= !(1 << 2);
         control1 &= !(1 << 0);
-        debug!("contro1 after change: 0x{:X}",control1 );
+        //debug!("contro1 after change: 0x{:X}",control1);
         //reset all
         self.emmc.registers.CONTROL1.write(control1);
-        
-        debug!("before control wait 0x{:X} 0x{:X}",self.emmc.registers.CONTROL1.read(),(self.emmc.registers.CONTROL1.read() & (0x7 << 24)));
+        //debug!("before control wait 0x{:X} 0x{:X}",self.emmc.registers.CONTROL1.read(),(self.emmc.registers.CONTROL1.read() & (0x7 << 24)));
         if !timeout_wait!((self.emmc.registers.CONTROL1.read() & (0x7 << 24)) == 0) {
             debug!("reset failed");
             self.dumpregs();
@@ -1028,41 +1041,29 @@ impl EmmcCtl {
 
         //power up and set bus width
         {
-            
             //bcm2835_mmc_writeb(host, SDHCI_POWER_330 | SDHCI_POWER_ON, SDHCI_POWER_CONTROL);//0x1|0xE,0x29
             control0 = self.emmc.registers.CONTROL0.read();
-            control0 |= (0x1|0xE)<<8;
-            //let mut ctrl:u32 = bcm2835_mmc_readb(host, SDHCI_HOST_CONTROL);
-            /*ctrl &= ~SDHCI_CTRL_8BITBUS;//0x20
-            ctrl &= ~SDHCI_CTRL_4BITBUS;//0x02
-            ctrl &= ~SDHCI_CTRL_HISPD;//0x04*/
-            control0 &= !(0x20);//0x20
-            control0 &= !(0x02);//0x02
-            //control0 |= 0x02;//0x02
-            control0 &= !(0x04);//0x04
-            //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);//0x28
+            control0 |= (0x1 | 0xE) << 8;
+            control0 &= !(0x20); //0x20
+            control0 &= !(0x02); //0x02
+                                 //control0 |= 0x02;//0x02
+            control0 &= !(0x04); //0x04
+                                 //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);//0x28
             self.emmc.registers.CONTROL0.write(control0);
             //ctrl_2 = bcm2835_mmc_readw(host, SDHCI_HOST_CONTROL2);//0x3e
-            let mut control2 : u32 = self.emmc.registers.CONTROL2.read();//0x3e
-	        control2 &= (!(0x0030))<<16;//0x0030
-            //bcm2835_mmc_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
+            let mut control2: u32 = self.emmc.registers.CONTROL2.read(); //0x3e
+            control2 &= (!(0x0030)) << 16; //0x0030
+                                           //bcm2835_mmc_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
             self.emmc.registers.CONTROL2.write(control2);
             /* Reset SD Clock Enable */
-            //clk = bcm2835_mmc_readw(host, SDHCI_CLOCK_CONTROL);//0x2c
             let mut clk: u32 = self.emmc.registers.CONTROL1.read();
-            clk &= !(0x0004);//0x0004
-            //bcm2835_mmc_writew(host, clk, SDHCI_CLOCK_CONTROL);
+            clk &= !(0x0004); //0x0004
+                              //bcm2835_mmc_writew(host, clk, SDHCI_CLOCK_CONTROL);
             self.emmc.registers.CONTROL1.write(control1);
-
-            /* Re-enable SD Clock */
-            //bcm2835_mmc_set_clock(host, host->clock);
-            //bcm2835_mmc_writeb(host, ctrl, SDHCI_HOST_CONTROL);
-            self.emmc.registers.CONTROL0.write(control0);
         }
         usleep(2000);
-        debug!("after set ios");
+        //debug!("after set ios");
         self.dumpregs();
-
 
         // Send CMD0 to the card (reset to idle state)
         info!("EmmcCtl: Send CMD0 to the card (reset to idle state).");
@@ -1102,7 +1103,7 @@ impl EmmcCtl {
             }
             true
         };
-        debug!("after deal cmd8 response v2_later:{}",v2_later);
+        debug!("if sd card v2?:{}", v2_later);
         // Here we are supposed to check the response to CMD5 (HCSS 3.6)
         // It only returns if the card is a SDIO card
         self.sd_issue_command(IO_SET_OP_COND, 0, 10000);
@@ -1122,7 +1123,7 @@ impl EmmcCtl {
             warn!("EmmcCtl: inquiry ACMD41 failed.");
             return false;
         }
-        debug!("after acmd41");
+        //debug!("after acmd41");
         let mut card_is_busy = true;
 
         while card_is_busy {
@@ -1154,7 +1155,7 @@ impl EmmcCtl {
                 usleep(500000);
             }
         }
-        debug!("after acmd41 again");
+        //debug!("after acmd41 again");
         // At this point, we know the card is definitely an SD card, so will definitely
         //  support SDR12 mode which runs at 25 MHz
         self.sd_switch_clock_rate(base_clock, 25000000 /* SD_CLOCK_NORMAL */);
@@ -1395,12 +1396,7 @@ impl EmmcCtl {
     }
 
     ///read_block
-    pub fn read_block(
-        &mut self,
-        block_no_arg: u32,
-        count: usize,
-        buf: &mut [u32],
-    ) -> DevResult {
+    pub fn read_block(&mut self, block_no_arg: u32, count: usize, buf: &mut [u32]) -> DevResult {
         let mut block_no = block_no_arg;
         if !self.card_supports_sdhc {
             block_no *= 512;
@@ -1438,8 +1434,7 @@ impl EmmcCtl {
                         let mut cur_word_no = 0;
                         while cur_word_no < blocks_size_u32 {
                             let now_data = self.emmc.registers.DATA.read();
-                            buf[(cur_block as usize) * blocks_size_u32 + cur_word_no] =
-                                now_data;
+                            buf[(cur_block as usize) * blocks_size_u32 + cur_word_no] = now_data;
                             //debug!("tansfer data to buf {},DATA: {:X},buf: {:X}",(cur_block as usize) * blocks_size_u32 + cur_word_no,now_data,buf[(cur_block as usize) * blocks_size_u32 + cur_word_no]);
                             cur_word_no += 1;
                         }
@@ -1667,9 +1662,9 @@ fn demo_write(ctrl: &mut EmmcCtl) {
 ///sd driver
 pub struct SDHCIDriver(pub Mutex<EmmcCtl>);
 
-impl SDHCIDriver{
+impl SDHCIDriver {
     ///sd driver new
-    pub fn new()-> SDHCIDriver{
+    pub fn new() -> SDHCIDriver {
         let mut ctrl = EmmcCtl::new();
         if ctrl.init() == 0 {
             info!("BCM2835 sdhci: successfully initialized");
@@ -1681,7 +1676,6 @@ impl SDHCIDriver{
 }
 
 impl BaseDriverOps for SDHCIDriver {
-
     fn device_type(&self) -> DeviceType {
         DeviceType::Block
     }
@@ -1698,23 +1692,10 @@ impl BlockDriverOps for SDHCIDriver {
         }
         let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
         let res = self.0.lock().read_block(block_id as u32, 1, buf);
-        /*if block_id == 0{
-            let len = buf.len();
-            for i in 0..len{
-                debug!("out read res {}: {:X}",i,buf[i]);
-            }
-            debug!("mmc read block {},{:X}",block_id,buf[0]);
-        }*/
         res
     }
 
     fn write_block(&mut self, block_id: u64, buf: &[u8]) -> DevResult {
-        if block_id == 0{
-            for i in 0..16{
-                debug!("out write res {}: {:X}",i,buf[i]);
-            }
-            debug!("mmc write block {},{:X}",block_id,buf[0]);
-        }    
         if buf.len() < BLOCK_SIZE {
             return Err(DevError::Io);
         }
