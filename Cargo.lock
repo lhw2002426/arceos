@@ -12,14 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aarch64-cpu"
-version = "9.3.1"
-source = "git+https://github.com/lhw2002426/aarch64-cpu#d7d8dbb2e3e3eff8e7c201d3b1aebb81c7e84017"
-dependencies = [
- "tock-registers",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,7 +230,6 @@ dependencies = [
  "driver_block",
  "driver_common",
  "driver_display",
- "driver_mmc",
  "driver_net",
  "driver_pci",
  "driver_virtio",
@@ -304,7 +295,7 @@ dependencies = [
 name = "axhal"
 version = "0.1.0"
 dependencies = [
- "aarch64-cpu 9.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aarch64-cpu",
  "arm_gic",
  "arm_pl011",
  "axalloc",
@@ -468,11 +459,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b7e4c2464d97fe331d41de9d5db0def0a96f4d823b8b32a2efd503578988973"
 
 [[package]]
-name = "bcm2837"
-version = "2.6.0"
-source = "git+https://github.com/lhw2002426/bcm2837#04ce9499784008d399c20dfdfedf0bd8fc6f4b62"
+name = "bcm2835-sdhci"
+version = "0.1.0"
+source = "git+https://github.com/lhw2002426/bcm2835-sdhci.git#b5cf8995acf7873032dd77869d38c40fb92cba4a"
 dependencies = [
- "aarch64-cpu 9.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aarch64-cpu",
  "log",
  "tock-registers",
  "volatile 0.2.7",
@@ -668,14 +659,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
 
 [[package]]
-name = "cortex-a"
-version = "8.1.1"
-source = "git+https://github.com/rust-embedded/cortex-a#2ce4624ddc326b73ed02ab03e4bba83960b6107f"
-dependencies = [
- "tock-registers",
-]
-
-[[package]]
 name = "crate_interface"
 version = "0.1.1"
 dependencies = [
@@ -726,7 +709,10 @@ dependencies = [
 name = "driver_block"
 version = "0.1.0"
 dependencies = [
+ "bcm2835-sdhci",
  "driver_common",
+ "log",
+ "spinlock",
 ]
 
 [[package]]
@@ -738,22 +724,6 @@ name = "driver_display"
 version = "0.1.0"
 dependencies = [
  "driver_common",
-]
-
-[[package]]
-name = "driver_mmc"
-version = "0.1.0"
-dependencies = [
- "aarch64-cpu 9.3.1 (git+https://github.com/lhw2002426/aarch64-cpu)",
- "axsync",
- "bcm2837",
- "cortex-a",
- "driver_block",
- "driver_common",
- "lazy_static",
- "log",
- "spinlock",
- "tock-registers",
 ]
 
 [[package]]
@@ -1177,7 +1147,7 @@ dependencies = [
 name = "page_table_entry"
 version = "0.1.0"
 dependencies = [
- "aarch64-cpu 9.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aarch64-cpu",
  "bitflags 2.3.3",
  "memory_addr",
  "x86_64",
@@ -1453,18 +1423,18 @@ checksum = "b0293b4b29daaf487284529cc2f5675b8e57c61f70167ba415a463651fd6a918"
 
 [[package]]
 name = "serde"
-version = "1.0.175"
+version = "1.0.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d25439cd7397d044e2748a6fe2432b5e85db703d6d097bd014b3c0ad1ebff0b"
+checksum = "76dc28c9523c5d70816e393136b86d48909cfb27cecaa902d338c19ed47164dc"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.175"
+version = "1.0.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23f7ade6f110613c0d63858ddb8b94c1041f550eab58a16b371bdf2c9c80ab4"
+checksum = "a4e7b8c5dc823e3b90651ff1d3808419cd14e5ad76de04feaf37da114e7a306f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1473,9 +1443,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d03b412469450d4404fe8499a268edd7f8b79fecb074b0d812ad64ca21f4031b"
+checksum = "076066c5f1078eac5b722a31827a8832fe108bed65dfa75e233c89f8206e976c"
 dependencies = [
  "itoa",
  "ryu",
