@@ -461,7 +461,7 @@ checksum = "7b7e4c2464d97fe331d41de9d5db0def0a96f4d823b8b32a2efd503578988973"
 [[package]]
 name = "bcm2835-sdhci"
 version = "0.1.0"
-source = "git+https://github.com/lhw2002426/bcm2835-sdhci.git#21becf1f0d5a342caed12bb1086de6aa955c865f"
+source = "git+https://github.com/lhw2002426/bcm2835-sdhci.git?rev=dc9d587#dc9d58773daa523d8662a48db654fa02fe491a7e"
 dependencies = [
  "aarch64-cpu",
  "log",

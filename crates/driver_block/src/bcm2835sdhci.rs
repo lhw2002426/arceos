@@ -24,7 +24,7 @@ impl SDHCIDriver {
     }
 }
 
-fn deal_sdhci(err: SDHCIError) -> DevError{
+fn deal_sdhci(err: SDHCIError) -> DevError {
     match err {
         SDHCIError::Io => DevError::Io,
         SDHCIError::AlreadyExists => DevError::AlreadyExists,
@@ -53,8 +53,11 @@ impl BlockDriverOps for SDHCIDriver {
             return Err(DevError::InvalidParam);
         }
         //let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        let mut aligned_buf:[u32;BLOCK_SIZE / 4] = [0;BLOCK_SIZE / 4];
-        let res = self.0.lock().read_block(block_id as u32, 1, &mut aligned_buf);
+        let mut aligned_buf: [u32; BLOCK_SIZE / 4] = [0; BLOCK_SIZE / 4];
+        let res = self
+            .0
+            .lock()
+            .read_block(block_id as u32, 1, &mut aligned_buf);
         match res {
             Ok(()) => {
                 for i in 0..(BLOCK_SIZE / 4) {
@@ -74,7 +77,9 @@ impl BlockDriverOps for SDHCIDriver {
         //let buf = unsafe { slice::from_raw_parts(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
         let mut buf_mut = [0u8; BLOCK_SIZE];
         buf_mut[..buf.len()].copy_from_slice(buf);
-        let aligned_buf: &mut [u32] = unsafe { slice::from_raw_parts_mut(buf_mut.as_mut_ptr().cast::<u32>() , BLOCK_SIZE / 4) };
+        let aligned_buf: &mut [u32] = unsafe {
+            slice::from_raw_parts_mut(buf_mut.as_mut_ptr().cast::<u32>(), BLOCK_SIZE / 4)
+        };
         let res = self.0.lock().write_block(block_id as u32, 1, aligned_buf);
         match res {
             Ok(()) => Ok(()),
