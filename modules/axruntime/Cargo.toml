@@ -18,7 +18,7 @@ alloc = ["axalloc"]
 paging = ["alloc", "axhal/paging", "lazy_init"]
 
 multitask = ["alloc", "axtask/multitask"]
-fs = ["alloc", "paging", "axdriver/virtio-blk", "dep:axfs"] # TODO: remove "paging"
+fs = ["alloc", "paging", "axdriver/mmc", "dep:axfs"] # TODO: remove "paging"
 net = ["alloc", "paging", "axdriver/virtio-net", "dep:axnet"]
 display = ["alloc", "paging", "axdriver/virtio-gpu", "dep:axdisplay"]
 

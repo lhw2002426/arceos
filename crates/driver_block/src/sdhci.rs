@@ -3,6 +3,7 @@ extern crate alloc;
 use crate::BlockDriverOps;
 use alloc::sync::Arc;
 use bcm2835_sdhci::Bcm2835SDhci::{EmmcCtl, BLOCK_SIZE};
+use bcm2835_sdhci::SDHCIError;
 use core::slice;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use spinlock::SpinNoIrq as Mutex;
@@ -23,6 +24,19 @@ impl SDHCIDriver {
     }
 }
 
+fn deal_sdhci(err: SDHCIError) -> DevError{
+    match err {
+        SDHCIError::Io => DevError::Io,
+        SDHCIError::AlreadyExists => DevError::AlreadyExists,
+        SDHCIError::Again => DevError::Again,
+        SDHCIError::BadState => DevError::BadState,
+        SDHCIError::InvalidParam => DevError::InvalidParam,
+        SDHCIError::NoMemory => DevError::NoMemory,
+        SDHCIError::ResourceBusy => DevError::ResourceBusy,
+        SDHCIError::Unsupported => DevError::Unsupported,
+    }
+}
+
 impl BaseDriverOps for SDHCIDriver {
     fn device_type(&self) -> DeviceType {
         DeviceType::Block
@@ -36,13 +50,20 @@ impl BaseDriverOps for SDHCIDriver {
 impl BlockDriverOps for SDHCIDriver {
     fn read_block(&mut self, block_id: u64, buf: &mut [u8]) -> DevResult {
         if buf.len() < BLOCK_SIZE {
-            return Err(DevError::Io);
+            return Err(DevError::InvalidParam);
         }
-        let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        let res = self.0.lock().read_block(block_id as u32, 1, buf);
+        //let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
+        let mut aligned_buf:[u32;BLOCK_SIZE / 4] = [0;BLOCK_SIZE / 4];
+        let res = self.0.lock().read_block(block_id as u32, 1, &mut aligned_buf);
         match res {
-            Ok(()) => Ok(()),
-            Err(e) => Err(DevError::Io),
+            Ok(()) => {
+                for i in 0..(BLOCK_SIZE / 4) {
+                    let start = i * 4;
+                    buf[start..start + 4].copy_from_slice(&aligned_buf[i].to_le_bytes());
+                }
+                Ok(())
+            }
+            Err(e) => Err(deal_sdhci(e)),
         }
     }
 
@@ -50,11 +71,14 @@ impl BlockDriverOps for SDHCIDriver {
         if buf.len() < BLOCK_SIZE {
             return Err(DevError::Io);
         }
-        let buf = unsafe { slice::from_raw_parts(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        let res = self.0.lock().write_block(block_id as u32, 1, buf);
+        //let buf = unsafe { slice::from_raw_parts(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
+        let mut buf_mut = [0u8; BLOCK_SIZE];
+        buf_mut[..buf.len()].copy_from_slice(buf);
+        let aligned_buf: &mut [u32] = unsafe { slice::from_raw_parts_mut(buf_mut.as_mut_ptr().cast::<u32>() , BLOCK_SIZE / 4) };
+        let res = self.0.lock().write_block(block_id as u32, 1, aligned_buf);
         match res {
             Ok(()) => Ok(()),
-            Err(e) => Err(DevError::Io),
+            Err(e) => Err(deal_sdhci(e)),
         }
     }
     fn flush(&mut self) -> DevResult {
@@ -62,29 +86,11 @@ impl BlockDriverOps for SDHCIDriver {
     }
     #[inline]
     fn num_blocks(&self) -> u64 {
-        4194304
+        self.0.lock().get_block_num()
     }
 
     #[inline]
     fn block_size(&self) -> usize {
         self.0.lock().get_block_size()
-    }
-}
-
-///sd init
-pub fn init() {
-    info!("Initializing EmmcCtl...");
-    let mut ctrl = EmmcCtl::new();
-    if ctrl.init() == 0 {
-        //demo(&mut ctrl);
-        //demo_write(&mut ctrl);
-        let driver = Arc::new(SDHCIDriver(Mutex::new(ctrl)));
-        //rigister in rCore dosnt use
-        /* DRIVERS.write().push(driver.clone());
-        IRQ_MANAGER.write().register_all(driver.clone());
-        BLK_DRIVERS.write().push(driver);*/
-        info!("BCM2835 sdhci: successfully initialized");
-    } else {
-        warn!("BCM2835 sdhci: init failed");
     }
 }
