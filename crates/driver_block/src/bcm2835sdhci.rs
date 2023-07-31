@@ -1,10 +1,8 @@
 //! sd card driver for raspi4
 extern crate alloc;
 use crate::BlockDriverOps;
-use alloc::sync::Arc;
 use bcm2835_sdhci::Bcm2835SDhci::{EmmcCtl, BLOCK_SIZE};
 use bcm2835_sdhci::SDHCIError;
-use core::slice;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 
 ///sdhci driver

@@ -40,7 +40,6 @@ impl FatFileSystem {
 
     #[cfg(not(feature = "use-ramdisk"))]
     pub fn new(disk: Disk) -> Self {
-        debug!("not use ramdisk");
         let inner = fatfs::FileSystem::new(disk, fatfs::FsOptions::new())
             .expect("failed to initialize FAT filesystem");
         Self {
