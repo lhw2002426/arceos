@@ -4,9 +4,6 @@
 #![feature(doc_auto_cfg)]
 #![feature(const_trait_impl)]
 
-#[macro_use]
-extern crate log;
-
 #[cfg(feature = "ramdisk")]
 pub mod ramdisk;
 
