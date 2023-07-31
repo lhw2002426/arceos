@@ -9,7 +9,7 @@ use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
 use spinlock::SpinNoIrq as Mutex;
 
 ///sdhci driver
-pub struct SDHCIDriver(pub Mutex<EmmcCtl>);
+pub struct SDHCIDriver(pub EmmcCtl);
 
 impl SDHCIDriver {
     ///sd driver new
@@ -20,7 +20,7 @@ impl SDHCIDriver {
         } else {
             warn!("BCM2835 sdhci: init failed");
         }
-        SDHCIDriver(Mutex::new(ctrl))
+        SDHCIDriver(ctrl)
     }
 }
 
@@ -52,20 +52,13 @@ impl BlockDriverOps for SDHCIDriver {
         if buf.len() < BLOCK_SIZE {
             return Err(DevError::InvalidParam);
         }
-        //let buf = unsafe { slice::from_raw_parts_mut(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        let mut aligned_buf: [u32; BLOCK_SIZE / 4] = [0; BLOCK_SIZE / 4];
-        let res = self
-            .0
-            .lock()
-            .read_block(block_id as u32, 1, &mut aligned_buf);
+        let (prefix, aligned_buf, suffix) = unsafe { buf.align_to_mut::<u32>() };
+        if !prefix.is_empty() || !suffix.is_empty() {
+            return Err(DevError::InvalidParam);
+        }
+        let res = self.0.read_block(block_id as u32, 1, aligned_buf);
         match res {
-            Ok(()) => {
-                for i in 0..(BLOCK_SIZE / 4) {
-                    let start = i * 4;
-                    buf[start..start + 4].copy_from_slice(&aligned_buf[i].to_le_bytes());
-                }
-                Ok(())
-            }
+            Ok(()) => Ok(()),
             Err(e) => Err(deal_sdhci(e)),
         }
     }
@@ -80,7 +73,7 @@ impl BlockDriverOps for SDHCIDriver {
         let aligned_buf: &mut [u32] = unsafe {
             slice::from_raw_parts_mut(buf_mut.as_mut_ptr().cast::<u32>(), BLOCK_SIZE / 4)
         };
-        let res = self.0.lock().write_block(block_id as u32, 1, aligned_buf);
+        let res = self.0.write_block(block_id as u32, 1, aligned_buf);
         match res {
             Ok(()) => Ok(()),
             Err(e) => Err(deal_sdhci(e)),
@@ -91,11 +84,11 @@ impl BlockDriverOps for SDHCIDriver {
     }
     #[inline]
     fn num_blocks(&self) -> u64 {
-        self.0.lock().get_block_num()
+        self.0.get_block_num()
     }
 
     #[inline]
     fn block_size(&self) -> usize {
-        self.0.lock().get_block_size()
+        self.0.get_block_size()
     }
 }
