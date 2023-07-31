@@ -877,7 +877,6 @@ version = "0.1.0"
 dependencies = [
  "bcm2835-sdhci",
  "driver_common",
- "log",
 ]
 
 [[package]]

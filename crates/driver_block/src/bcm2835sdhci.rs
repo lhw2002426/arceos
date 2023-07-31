@@ -21,6 +21,12 @@ impl SDHCIDriver {
     }
 }
 
+impl Default for SDHCIDriver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn deal_sdhci_err(err: SDHCIError) -> DevError {
     match err {
         SDHCIError::Io => DevError::Io,
