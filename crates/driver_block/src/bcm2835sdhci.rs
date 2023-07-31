@@ -6,7 +6,6 @@ use bcm2835_sdhci::Bcm2835SDhci::{EmmcCtl, BLOCK_SIZE};
 use bcm2835_sdhci::SDHCIError;
 use core::slice;
 use driver_common::{BaseDriverOps, DevError, DevResult, DeviceType};
-use spinlock::SpinNoIrq as Mutex;
 
 ///sdhci driver
 pub struct SDHCIDriver(pub EmmcCtl);
@@ -24,7 +23,7 @@ impl SDHCIDriver {
     }
 }
 
-fn deal_sdhci(err: SDHCIError) -> DevError {
+fn deal_sdhci_err(err: SDHCIError) -> DevError {
     match err {
         SDHCIError::Io => DevError::Io,
         SDHCIError::AlreadyExists => DevError::AlreadyExists,
@@ -56,11 +55,9 @@ impl BlockDriverOps for SDHCIDriver {
         if !prefix.is_empty() || !suffix.is_empty() {
             return Err(DevError::InvalidParam);
         }
-        let res = self.0.read_block(block_id as u32, 1, aligned_buf);
-        match res {
-            Ok(()) => Ok(()),
-            Err(e) => Err(deal_sdhci(e)),
-        }
+        self.0
+            .read_block(block_id as u32, 1, aligned_buf)
+            .map_err(deal_sdhci_err)
     }
 
     fn write_block(&mut self, block_id: u64, buf: &[u8]) -> DevResult {
@@ -68,16 +65,14 @@ impl BlockDriverOps for SDHCIDriver {
             return Err(DevError::Io);
         }
         //let buf = unsafe { slice::from_raw_parts(buf.as_ptr() as *mut u32, BLOCK_SIZE / 4) };
-        let mut buf_mut = [0u8; BLOCK_SIZE];
-        buf_mut[..buf.len()].copy_from_slice(buf);
-        let aligned_buf: &mut [u32] = unsafe {
-            slice::from_raw_parts_mut(buf_mut.as_mut_ptr().cast::<u32>(), BLOCK_SIZE / 4)
-        };
-        let res = self.0.write_block(block_id as u32, 1, aligned_buf);
-        match res {
-            Ok(()) => Ok(()),
-            Err(e) => Err(deal_sdhci(e)),
+        let (prefix, aligned_buf, suffix) = unsafe { buf.align_to::<u32>() };
+
+        if !prefix.is_empty() || !suffix.is_empty() {
+            return Err(DevError::InvalidParam);
         }
+        self.0
+            .write_block(block_id as u32, 1, aligned_buf)
+            .map_err(deal_sdhci_err)
     }
     fn flush(&mut self) -> DevResult {
         Ok(())

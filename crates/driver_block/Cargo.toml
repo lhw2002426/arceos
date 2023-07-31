@@ -17,6 +17,5 @@ default = []
 [dependencies]
 log = "0.4"
 driver_common = { path = "../driver_common" }
-spinlock = { path = "../spinlock",option = "smp"}
 bcm2835-sdhci = {git = "https://github.com/lhw2002426/bcm2835-sdhci.git", rev = "e974f16", optional = true}
 
