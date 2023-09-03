@@ -460,6 +460,7 @@ dependencies = [
  "kernel_guard",
  "lazy_init",
  "percpu",
+ "volatile 0.2.7",
 ]
 
 [[package]]

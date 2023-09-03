@@ -18,6 +18,7 @@
 
 #![cfg_attr(not(test), no_std)]
 #![feature(doc_auto_cfg)]
+#![feature(core_intrinsics)]
 
 #[macro_use]
 extern crate axlog;
@@ -25,6 +26,7 @@ extern crate axlog;
 #[cfg(all(target_os = "none", not(test)))]
 mod lang_items;
 mod trap;
+mod rtc;
 
 #[cfg(feature = "smp")]
 mod mp;
@@ -187,6 +189,18 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
 
     while !is_init_ok() {
         core::hint::spin_loop();
+    }
+
+    unsafe{
+        info!("before");
+        /*
+        let mut myrtc = rtc::Pl031rtc::new();
+        let x = myrtc.time();
+         */
+        rtc::init();
+        let x = rtc::PL031_RTC.time();
+        info!("{}",x);
+        info!("after");
     }
 
     unsafe { main() };
