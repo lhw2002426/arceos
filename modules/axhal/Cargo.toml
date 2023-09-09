@@ -17,6 +17,7 @@ paging = ["axalloc", "page_table"]
 irq = []
 tls = ["alloc"]
 default = []
+rtc = []
 
 [dependencies]
 log = "0.4"

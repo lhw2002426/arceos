@@ -49,6 +49,20 @@ pub unsafe extern "C" fn ax_clock_gettime(ts: *mut ctypes::timespec) -> c_int {
     })
 }
 
+/// Set clock time since booting
+#[no_mangle]
+pub unsafe extern "C" fn ax_clock_settime(ts: *mut ctypes::timespec) -> c_int {
+    ax_call_body!(ax_clock_settime, {
+        if ts.is_null() {
+            return Err(LinuxError::EFAULT);
+        }
+        let now = axhal::time::current_time().into();
+        unsafe { *ts = now };
+        debug!("ax_clock_settime: {}.{:09}s", now.tv_sec, now.tv_nsec);
+        Ok(0)
+    })
+}
+
 /// Sleep some nanoseconds
 ///
 /// TODO: should be woken by signals, and set errno

@@ -12,6 +12,8 @@ pub type TimeValue = Duration;
 pub use crate::platform::irq::TIMER_IRQ_NUM;
 #[cfg(feature = "irq")]
 pub use crate::platform::time::set_oneshot_timer;
+#[cfg(feature = "rtc")]
+pub use crate::platform::time::rtc_read_time;
 pub use crate::platform::time::{current_ticks, nanos_to_ticks, ticks_to_nanos};
 
 /// Number of milliseconds in a second.
@@ -32,6 +34,10 @@ pub fn current_time_nanos() -> u64 {
 
 /// Returns the current clock time in [`TimeValue`].
 pub fn current_time() -> TimeValue {
+    let nanos = current_time_nanos();
+    #[cfg(feature = "rtc")]
+    //let x = Duration::new(rtc_read_time(),0);
+    return Duration::new((nanos / (NANOS_PER_SEC as u64)) + rtc_read_time(), (nanos % (NANOS_PER_SEC as u64)) as u32);
     TimeValue::from_nanos(current_time_nanos())
 }
 

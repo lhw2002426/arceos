@@ -19,6 +19,7 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(doc_auto_cfg)]
 #![feature(core_intrinsics)]
+use core::intrinsics::{volatile_load, volatile_store};
 
 #[macro_use]
 extern crate axlog;
@@ -26,7 +27,6 @@ extern crate axlog;
 #[cfg(all(target_os = "none", not(test)))]
 mod lang_items;
 mod trap;
-mod rtc;
 
 #[cfg(feature = "smp")]
 mod mp;
@@ -191,17 +191,17 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
         core::hint::spin_loop();
     }
 
-    unsafe{
+    /*unsafe{
         info!("before");
-        /*
-        let mut myrtc = rtc::Pl031rtc::new();
-        let x = myrtc.time();
-         */
-        rtc::init();
-        let x = rtc::PL031_RTC.time();
+        
+        //rtc::init();
+        //let mut myrtc = rtc::Pl031rtc::new();
+        //let x = myrtc.time();
+        
+        let x = volatile_load(((0xffff_0000_0000_0000 as usize + 0x09010000) as usize) as *const u32)  as u64;
         info!("{}",x);
         info!("after");
-    }
+    }*/
 
     unsafe { main() };
 

@@ -170,6 +170,14 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
     return 0;
 }
 
+int settimeofday(const struct timeval *tv, const struct timezone *tz)
+{
+	if (!tv) return 0;
+	if (tv->tv_usec >= 1000000ULL) return __syscall_ret(-EINVAL);
+	return clock_settime(CLOCK_REALTIME, &((struct timespec){
+		.tv_sec = tv->tv_sec, .tv_nsec = tv->tv_usec * 1000}));
+}
+
 // TODO:
 int utimes(const char *filename, const struct timeval times[2])
 {
@@ -181,6 +189,11 @@ int utimes(const char *filename, const struct timeval times[2])
 int clock_gettime(clockid_t _clk, struct timespec *ts)
 {
     return ax_clock_gettime(ts);
+}
+
+int clock_settime(clockid_t _clk, struct timespec *ts)
+{
+    return ax_clock_settime(ts);
 }
 
 int nanosleep(const struct timespec *req, struct timespec *rem)
