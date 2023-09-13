@@ -20,7 +20,8 @@ pub fn init() {
         //let x = PL031_RTC.time();
         let x = rtc_read_time();
         debug!("{}",x);
-        rtc_write_time(10);
+        //rtc_write_time(10);
+        //PL031_RTC.write(RTC_CR,0);
         let x = rtc_read_time();
         debug!("{}",x);
     }
@@ -44,6 +45,11 @@ impl Pl031rtc {
 
     fn init(&mut self) {
         self.address = PHYS_OFFSET + 0x09010000;
+        unsafe{
+            if self.read(RTC_CR) != 1 {
+                self.write(RTC_CR,1);
+            }
+        }
         self.debug();
     }
 
@@ -53,8 +59,9 @@ impl Pl031rtc {
     }
 
     pub unsafe fn write(&mut self, reg: u32, value: u32) {
-        debug!("rtc write time");
+        debug!("rtc write");
         volatile_store((PHYS_RTC + reg as usize) as *mut u32, value);
+        self.debug();
     }
 
     pub fn time(&mut self) -> u64 {

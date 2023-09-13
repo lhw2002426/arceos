@@ -13,7 +13,7 @@ pub use crate::platform::irq::TIMER_IRQ_NUM;
 #[cfg(feature = "irq")]
 pub use crate::platform::time::set_oneshot_timer;
 #[cfg(feature = "rtc")]
-pub use crate::platform::time::rtc_read_time;
+pub use crate::platform::time::{rtc_read_time,rtc_write_time};
 pub use crate::platform::time::{current_ticks, nanos_to_ticks, ticks_to_nanos};
 
 /// Number of milliseconds in a second.
@@ -36,9 +36,24 @@ pub fn current_time_nanos() -> u64 {
 pub fn current_time() -> TimeValue {
     let nanos = current_time_nanos();
     #[cfg(feature = "rtc")]
-    //let x = Duration::new(rtc_read_time(),0);
-    return Duration::new((nanos / (NANOS_PER_SEC as u64)) + rtc_read_time(), (nanos % (NANOS_PER_SEC as u64)) as u32);
+    {
+        //let x = Duration::new(rtc_read_time(),0);
+        //return Duration::new((nanos / (NANOS_PER_SEC as u64)) + rtc_read_time(), (nanos % (NANOS_PER_SEC as u64)) as u32);
+        let rtc_time = rtc_read_time();
+        return Duration::new(rtc_time, (nanos % (NANOS_PER_SEC as u64)) as u32);
+    }
+    
     TimeValue::from_nanos(current_time_nanos())
+}
+
+pub fn set_current_time(new_tv:TimeValue){
+    let nanos = current_time_nanos();
+    #[cfg(feature = "rtc")]
+    {
+        let new_sec = new_tv.as_secs() as u32;
+        rtc_write_time(new_sec);
+    }
+    
 }
 
 /// Busy waiting for the given duration.

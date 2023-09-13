@@ -1,5 +1,8 @@
 use raw_cpuid::CpuId;
 
+#[cfg(feature = "rtc")]
+pub use crate::platform::x86_pc::rtc::*;
+
 #[cfg(feature = "irq")]
 const LAPIC_TICKS_PER_SEC: u64 = 1_000_000_000; // TODO: need to calibrate
 

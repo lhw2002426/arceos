@@ -163,9 +163,9 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
 	if (!tv) return 0;
-	if (tv->tv_usec >= 1000000ULL) return __syscall_ret(-EINVAL);
-	return clock_settime(CLOCK_REALTIME, &((struct timespec){
+	clock_settime(CLOCK_REALTIME, &((struct timespec){
 		.tv_sec = tv->tv_sec, .tv_nsec = tv->tv_usec * 1000}));
+    return 0; 
 }
 
 // TODO:

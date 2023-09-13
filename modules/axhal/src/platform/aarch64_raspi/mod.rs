@@ -1,4 +1,5 @@
 pub mod mem;
+pub mod rtc_ds1307;
 
 #[cfg(feature = "smp")]
 pub mod mp;

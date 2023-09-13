@@ -6,6 +6,7 @@ mod uart16550;
 pub mod mem;
 pub mod misc;
 pub mod time;
+pub mod rtc;
 
 #[cfg(feature = "smp")]
 pub mod mp;

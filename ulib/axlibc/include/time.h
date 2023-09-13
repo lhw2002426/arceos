@@ -39,5 +39,6 @@ void tzset(void);
 
 int nanosleep(const struct timespec *requested_time, struct timespec *remaining);
 int clock_gettime(clockid_t _clk, struct timespec *ts);
+int clock_settime(clockid_t _clk, struct timespec *ts);
 
 #endif // __TIME_H__
